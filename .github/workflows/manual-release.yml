@@ -1,0 +1,27 @@
+name: Manually release
+
+on:
+  workflow_dispatch:
+    inputs:
+      name:
+        description: 'Release Name'
+        required: true
+        default: '0.0.0'
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Call dev/make-distribution.sh
+      run: ./dev/make-distribution.sh --name spark-dp --pip --tgz -Phive -Phive-thriftserver -Pkubernetes -Phadoop-3.2 -Phadoop-cloud
+      
+    - name: Call dev/make-distribution.sh
+      run: ls -l
+      
+    - name: Build the Docker image
+      run: docker build . --file Dockerfile --tag my-image-name:$(date +%s)
