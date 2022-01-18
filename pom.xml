@@ -314,6 +314,13 @@
         <enabled>false</enabled>
       </snapshots>
     </repository>
+    <repository>
+      <id>github</id>
+      <url>https://maven.pkg.github.com/datapunchorg/RemoteShuffleService</url>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+    </repository>
   </repositories>
   <pluginRepositories>
     <pluginRepository>
@@ -3545,6 +3552,17 @@
           <artifactId>all</artifactId>
           <version>${netlib.java.version}</version>
           <type>pom</type>
+        </dependency>
+      </dependencies>
+    </profile>
+
+    <profile>
+      <id>remote-shuffle-service</id>
+      <dependencies>
+        <dependency>
+          <groupId>com.uber</groupId>
+          <artifactId>remote-shuffle-service-client</artifactId>
+          <version>0.0.10-SNAPSHOT</version>
         </dependency>
       </dependencies>
     </profile>
