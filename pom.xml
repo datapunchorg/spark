@@ -3563,6 +3563,7 @@
           <groupId>com.uber</groupId>
           <artifactId>remote-shuffle-service-client</artifactId>
           <version>0.0.10-SNAPSHOT</version>
+          <scope>compile</scope>
         </dependency>
       </dependencies>
     </profile>
