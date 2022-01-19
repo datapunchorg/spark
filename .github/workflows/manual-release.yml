@@ -18,7 +18,9 @@ jobs:
     - uses: actions/checkout@v2
     
     - name: Call dev/make-distribution.sh
-      run: ./dev/make-distribution.sh --name spark-dp --pip --tgz -Phive -Phive-thriftserver -Pkubernetes -Phadoop-3.2 -Phadoop-cloud
+      run: |
+        export MAVEN_OPTS=-Xss64m -Xmx4g -XX:ReservedCodeCacheSize=1g
+        ./dev/make-distribution.sh --name datapunch --pip --tgz -Phive -Phive-thriftserver -Pkubernetes -Phadoop-3.2 -Phadoop-cloud
       
     - name: Call dev/make-distribution.sh
       run: ls -l
