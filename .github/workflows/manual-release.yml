@@ -17,16 +17,6 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    # https://docs.github.com/en/actions/publishing-packages/publishing-java-packages-with-maven
-    - name: Set up Maven Central Repository
-        uses: actions/setup-java@v2
-        with:
-          java-version: '11'
-          distribution: 'adopt'
-          server-id: github
-          server-username: datapunchorg
-          server-password: ${{ secrets.GITHUB_TOKEN }}
-
     - name: Call dev/make-distribution.sh
       run: |
         cat ~/.m2/settings.xml
