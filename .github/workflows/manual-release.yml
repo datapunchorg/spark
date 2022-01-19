@@ -15,32 +15,22 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+    - uses: actions/checkout@v2
 
-      # https://docs.github.com/en/actions/publishing-packages/publishing-java-packages-with-maven
-      - name: Set up Maven Central Repository
-          uses: actions/setup-java@v2
-          with:
-            java-version: '11'
-            distribution: 'adopt'
-            server-id: github
-            server-username: datapunchorg
-            server-password: ${{ secrets.GITHUB_TOKEN }}
+    - name: Call dev/make-distribution.sh
+      run: |
+        cat ~/.m2/settings.xml
+        export MAVEN_OPTS="-Xss64m -Xmx4g -XX:ReservedCodeCacheSize=1g"
+        ./dev/make-distribution.sh --name datapunch --pip --tgz -Phive -Phive-thriftserver -Pkubernetes -Phadoop-3.2 -Phadoop-cloud
+        ls -l
 
-      - name: Call dev/make-distribution.sh
-        run: |
-          cat ~/.m2/settings.xml
-          export MAVEN_OPTS="-Xss64m -Xmx4g -XX:ReservedCodeCacheSize=1g"
-          ./dev/make-distribution.sh --name datapunch --pip --tgz -Phive -Phive-thriftserver -Pkubernetes -Phadoop-3.2 -Phadoop-cloud
-          ls -l
-
-      - name: Build the Docker image
-        run: |
-          mkdir -p temp
-          mv spark-*-bin-datapunch.tgz temp/
-          cd temp
-          tar xzvf spark-*-bin-datapunch.tgz
-          rm spark-*-bin-datapunch.tgz
-          mv spark-*-bin-datapunch spark-bin-datapunch
-          pwd
-          ls -l
+    - name: Build the Docker image
+      run: |
+        mkdir -p temp
+        mv spark-*-bin-datapunch.tgz temp/
+        cd temp
+        tar xzvf spark-*-bin-datapunch.tgz
+        rm spark-*-bin-datapunch.tgz
+        mv spark-*-bin-datapunch spark-bin-datapunch
+        pwd
+        ls -l
