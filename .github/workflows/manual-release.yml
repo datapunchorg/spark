@@ -8,6 +8,10 @@ on:
         required: true
         default: '0.0.0'
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
 jobs:
 
   build:
@@ -33,3 +37,21 @@ jobs:
         mv spark-*-bin-datapunch spark-bin-datapunch
         pwd
         ls -l
+        cd spark-bin-datapunch
+        ./bin/docker-image-tool.sh -t spark-3.2.0 build
+        ./bin/docker-image-tool.sh -t pyspark-3.2.0 -p kubernetes/dockerfiles/spark/bindings/python/Dockerfile build
+        docker images
+
+    - name: Log in to the Container registry
+      uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Publish the Docker image
+      run: |
+        docker tag spark:spark-3.2.0 ghcr.io/bobyangbo/spark:spark-3.2.0
+        docker push ghcr.io/bobyangbo/spark:spark-3.2.0
+        docker tag spark:pyspark-3.2.0 ghcr.io/bobyangbo/spark:pyspark-3.2.0
+        docker push ghcr.io/bobyangbo/spark:pyspark-3.2.0
