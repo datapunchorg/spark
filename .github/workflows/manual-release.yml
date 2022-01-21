@@ -51,7 +51,7 @@ jobs:
 
     - name: Publish the Docker image
       run: |
-        docker tag spark:spark-3.2.0 ghcr.io/bobyangbo/spark:spark-3.2.0
-        docker push ghcr.io/bobyangbo/spark:spark-3.2.0
-        docker tag spark:pyspark-3.2.0 ghcr.io/bobyangbo/spark:pyspark-3.2.0
-        docker push ghcr.io/bobyangbo/spark:pyspark-3.2.0
+        docker tag spark:spark-3.2.0 ghcr.io/datapunchorg/spark:spark-3.2.0
+        docker push ghcr.io/datapunchorg/spark:spark-3.2.0
+        docker tag spark:pyspark-3.2.0 ghcr.io/datapunchorg/spark:pyspark-3.2.0
+        docker push ghcr.io/datapunchorg/spark:pyspark-3.2.0
