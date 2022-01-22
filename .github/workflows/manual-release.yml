@@ -8,10 +8,6 @@ on:
         required: true
         default: '0.0.0'
 
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
-
 jobs:
 
   build:
@@ -19,39 +15,21 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+    - uses: actions/checkout@v2
 
-      - name: Call dev/make-distribution.sh
-        run: |
-          export MAVEN_OPTS="-Xss64m -Xmx4g -XX:ReservedCodeCacheSize=1g"
-          ./dev/make-distribution.sh --name datapunch --pip --tgz -Phive -Phive-thriftserver -Pkubernetes -Phadoop-3.2 -Phadoop-cloud -Premote-shuffle-service
-          ls -l
+    - name: Call dev/make-distribution.sh
+      run: |
+        export MAVEN_OPTS="-Xss64m -Xmx4g -XX:ReservedCodeCacheSize=1g"
+        ./dev/make-distribution.sh --name datapunch --pip --tgz -Phive -Phive-thriftserver -Pkubernetes -Phadoop-3.2 -Phadoop-cloud
+        ls -l
 
-      - name: Build the Docker image
-        run: |
-               mkdir -p temp
-               mv spark-*-bin-datapunch.tgz temp/
-               cd temp
-               tar xzvf spark-*-bin-datapunch.tgz
-               rm spark-*-bin-datapunch.tgz
-               mv spark-*-bin-datapunch spark-bin-datapunch
-               pwd
-               ls -l
-               cd spark-bin-datapunch
-          #        ./bin/docker-image-tool.sh -t spark-3.2.2-SNAPSHOT build
-               ./bin/docker-image-tool.sh -t pyspark-3.2.2-SNAPSHOT -p kubernetes/dockerfiles/spark/bindings/python/Dockerfile build
-               docker images
-
-      - name: Log in to the Container registry
-        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Publish the Docker image
-        run: |
-          #        docker tag spark:spark-3.2.2-SNAPSHOT ghcr.io/datapunchorg/spark:spark-3.2.2-SNAPSHOT
-          #        docker push ghcr.io/datapunchorg/spark:spark-3.2.2-SNAPSHOT
-               docker tag spark:pyspark-3.2.2-SNAPSHOT ghcr.io/datapunchorg/spark:pyspark-3.2.2-SNAPSHOT
-               docker push ghcr.io/datapunchorg/spark:pyspark-3.2.2-SNAPSHOT
+    - name: Build the Docker image
+      run: |
+        mkdir -p temp
+        mv spark-*-bin-datapunch.tgz temp/
+        cd temp
+        tar xzvf spark-*-bin-datapunch.tgz
+        rm spark-*-bin-datapunch.tgz
+        mv spark-*-bin-datapunch spark-bin-datapunch
+        pwd
+        ls -l
