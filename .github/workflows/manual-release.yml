@@ -38,8 +38,8 @@ jobs:
         pwd
         ls -l
         cd spark-bin-datapunch
-#        ./bin/docker-image-tool.sh -t spark-3.2.2-SNAPSHOT build
-        ./bin/docker-image-tool.sh -t pyspark-3.2.2-SNAPSHOT -p kubernetes/dockerfiles/spark/bindings/python/Dockerfile build
+        ./bin/docker-image-tool.sh -t spark-3.2.0 build
+        ./bin/docker-image-tool.sh -t pyspark-3.2.0 -p kubernetes/dockerfiles/spark/bindings/python/Dockerfile build
         docker images
 
     - name: Log in to the Container registry
@@ -51,7 +51,7 @@ jobs:
 
     - name: Publish the Docker image
       run: |
-#        docker tag spark:spark-3.2.2-SNAPSHOT ghcr.io/datapunchorg/spark:spark-3.2.2-SNAPSHOT
-#        docker push ghcr.io/datapunchorg/spark:spark-3.2.2-SNAPSHOT
-        docker tag spark:pyspark-3.2.2-SNAPSHOT ghcr.io/datapunchorg/spark:pyspark-3.2.2-SNAPSHOT
-        docker push ghcr.io/datapunchorg/spark:pyspark-3.2.2-SNAPSHOT
+        docker tag spark:spark-3.2.0 ghcr.io/datapunchorg/spark:spark-3.2.0
+        docker push ghcr.io/datapunchorg/spark:spark-3.2.0
+        docker tag spark:pyspark-3.2.0 ghcr.io/datapunchorg/spark:pyspark-3.2.0
+        docker push ghcr.io/datapunchorg/spark:pyspark-3.2.0
