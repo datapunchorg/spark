@@ -51,7 +51,8 @@ jobs:
 
     - name: Publish the Docker image
       run: |
-        docker tag spark:spark-3.2 ghcr.io/datapunchorg/spark:spark-3.2
-        docker push ghcr.io/datapunchorg/spark:spark-3.2
-        docker tag spark-py:pyspark-3.2 ghcr.io/datapunchorg/spark:pyspark-3.2
-        docker push ghcr.io/datapunchorg/spark:pyspark-3.2
+        suffix=$(date +%s)
+        docker tag spark:spark-3.2 ghcr.io/datapunchorg/spark:spark-3.2-$suffix
+        docker push ghcr.io/datapunchorg/spark:spark-3.2-$suffix
+        docker tag spark-py:pyspark-3.2 ghcr.io/datapunchorg/spark:pyspark-3.2-$suffix
+        docker push ghcr.io/datapunchorg/spark:pyspark-3.2-$suffix
