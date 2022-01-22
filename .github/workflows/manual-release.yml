@@ -38,7 +38,7 @@ jobs:
         pwd
         ls -l
         cd spark-bin-datapunch
-        ./bin/docker-image-tool.sh -t spark-3.2
+        ./bin/docker-image-tool.sh -t spark-3.2 build
         ./bin/docker-image-tool.sh -t pyspark-3.2 -p kubernetes/dockerfiles/spark/bindings/python/Dockerfile build
         docker images
 
