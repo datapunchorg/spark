@@ -3389,5 +3389,16 @@
         <leveldbjni.group>org.openlabtesting.leveldbjni</leveldbjni.group>
       </properties>
     </profile>
+    <profile>
+      <id>remote-shuffle-service</id>
+      <dependencies>
+        <dependency>
+          <groupId>org.datapunch</groupId>
+          <artifactId>remote-shuffle-service-client-spark31</artifactId>
+          <version>0.0.12</version>
+          <scope>compile</scope>
+        </dependency>
+      </dependencies>
+    </profile>
   </profiles>
 </project>
