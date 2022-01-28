@@ -38,8 +38,8 @@ jobs:
         pwd
         ls -l
         cd spark-bin-datapunch
-        ./bin/docker-image-tool.sh -t spark-3.2 build
-        ./bin/docker-image-tool.sh -t pyspark-3.2 -p kubernetes/dockerfiles/spark/bindings/python/Dockerfile build
+        ./bin/docker-image-tool.sh -t spark-3.2.1 build
+        ./bin/docker-image-tool.sh -t pyspark-3.2.1 -p kubernetes/dockerfiles/spark/bindings/python/Dockerfile build
         docker images
 
     - name: Log in to the Container registry
@@ -52,7 +52,7 @@ jobs:
     - name: Publish the Docker image
       run: |
         suffix=$(date +%s)
-        docker tag spark:spark-3.2 ghcr.io/datapunchorg/spark:spark-3.2-$suffix
-        docker push ghcr.io/datapunchorg/spark:spark-3.2-$suffix
-        docker tag spark-py:pyspark-3.2 ghcr.io/datapunchorg/spark:pyspark-3.2-$suffix
-        docker push ghcr.io/datapunchorg/spark:pyspark-3.2-$suffix
+        docker tag spark:spark-3.2.1 ghcr.io/datapunchorg/spark:spark-3.2.1-$suffix
+        docker push ghcr.io/datapunchorg/spark:spark-3.2.1-$suffix
+        docker tag spark-py:pyspark-3.2.1 ghcr.io/datapunchorg/spark:pyspark-3.2.1-$suffix
+        docker push ghcr.io/datapunchorg/spark:pyspark-3.2.1-$suffix
