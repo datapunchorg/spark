@@ -32,10 +32,7 @@ import org.codehaus.commons.compiler.CompileException
 import org.codehaus.janino.{ByteArrayClassLoader, ClassBodyEvaluator, InternalCompilerException, SimpleCompiler}
 import org.codehaus.janino.util.ClassFile
 
-import org.apache.spark.{TaskContext, TaskKilledException}
-import org.apache.spark.executor.InputMetrics
 import org.apache.spark.internal.Logging
-import org.apache.spark.metrics.source.CodegenMetrics
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.catalyst.expressions.codegen.Block._
@@ -1473,9 +1470,6 @@ object CodeGenerator extends Logging {
       classOf[MapData].getName,
       classOf[UnsafeMapData].getName,
       classOf[Expression].getName,
-      classOf[TaskContext].getName,
-      classOf[TaskKilledException].getName,
-      classOf[InputMetrics].getName,
       QueryExecutionErrors.getClass.getName.stripSuffix("$")
     )
     evaluator.setExtendedClass(classOf[GeneratedClass])
@@ -1536,14 +1530,12 @@ object CodeGenerator extends Logging {
     codeAttrField.setAccessible(true)
     val codeStats = classes.map { case (_, classBytes) =>
       val classCodeSize = classBytes.length
-      CodegenMetrics.METRIC_GENERATED_CLASS_BYTECODE_SIZE.update(classCodeSize)
       try {
         val cf = new ClassFile(new ByteArrayInputStream(classBytes))
         val constPoolSize = cf.getConstantPoolSize
         val methodCodeSizes = cf.methodInfos.asScala.flatMap { method =>
           method.getAttributes().filter(_.getClass eq codeAttr).map { a =>
             val byteCodeSize = codeAttrField.get(a).asInstanceOf[Array[Byte]].length
-            CodegenMetrics.METRIC_GENERATED_METHOD_BYTECODE_SIZE.update(byteCodeSize)
 
             if (byteCodeSize > DEFAULT_JVM_HUGE_METHOD_LIMIT) {
               logInfo("Generated method too long to be JIT compiled: " +
@@ -1588,8 +1580,6 @@ object CodeGenerator extends Logging {
           val endTime = System.nanoTime()
           val duration = endTime - startTime
           val timeMs: Double = duration.toDouble / NANOS_PER_MILLIS
-          CodegenMetrics.METRIC_SOURCE_CODE_SIZE.update(code.body.length)
-          CodegenMetrics.METRIC_COMPILATION_TIME.update(timeMs.toLong)
           logInfo(s"Code generated in $timeMs ms")
           _compileTime.add(duration)
           result
