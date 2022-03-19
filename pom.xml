@@ -3381,30 +3381,6 @@
       </dependencies>
     </profile>
 
-    <!-- Ganglia integration is not included by default due to LGPL-licensed code -->
-    <profile>
-      <id>spark-ganglia-lgpl</id>
-      <modules>
-        <module>external/spark-ganglia-lgpl</module>
-      </modules>
-    </profile>
-
-    <!-- Kinesis integration is not included by default due to ASL-licensed code -->
-    <profile>
-      <id>kinesis-asl</id>
-      <modules>
-        <module>external/kinesis-asl</module>
-        <module>external/kinesis-asl-assembly</module>
-      </modules>
-    </profile>
-
-    <profile>
-      <id>docker-integration-tests</id>
-      <modules>
-        <module>external/docker-integration-tests</module>
-      </modules>
-    </profile>
-
     <!-- A series of build profiles where customizations for particular Hadoop releases can be made -->
 
     <!-- Hadoop-a.b.c dependencies can be found at
@@ -3432,43 +3408,6 @@
     <profile>
       <id>hadoop-3</id>
       <!-- Default hadoop profile. Uses global properties. -->
-    </profile>
-
-    <profile>
-      <id>yarn</id>
-      <modules>
-        <module>resource-managers/yarn</module>
-        <module>common/network-yarn</module>
-      </modules>
-    </profile>
-
-    <profile>
-      <id>mesos</id>
-      <modules>
-        <module>resource-managers/mesos</module>
-      </modules>
-    </profile>
-
-    <profile>
-      <id>kubernetes</id>
-      <modules>
-        <module>resource-managers/kubernetes/core</module>
-      </modules>
-    </profile>
-
-    <!-- generally not enabled for automated builds, but will run k8s tests -->
-    <profile>
-      <id>kubernetes-integration-tests</id>
-      <modules>
-        <module>resource-managers/kubernetes/integration-tests</module>
-      </modules>
-    </profile>
-
-    <profile>
-      <id>hive-thriftserver</id>
-      <modules>
-        <module>sql/hive-thriftserver</module>
-      </modules>
     </profile>
 
     <profile>
