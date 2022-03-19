@@ -30,7 +30,7 @@ import org.apache.spark.sql.execution.ui.StreamingQueryStatusStore
 import org.apache.spark.sql.internal.StaticSQLConf
 import org.apache.spark.sql.streaming.{StreamingQueryListener, StreamingQueryProgress, StreamTest}
 import org.apache.spark.sql.streaming
-import org.apache.spark.status.{ElementTrackingStore, KVUtils}
+import org.apache.spark.status.ElementTrackingStore
 import org.apache.spark.util.Utils
 import org.apache.spark.util.kvstore.{InMemoryStore, KVStore}
 

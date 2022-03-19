@@ -27,8 +27,6 @@ import com.codahale.metrics.Timer
 
 import org.apache.spark.SparkEnv
 import org.apache.spark.internal.{config, Logging}
-import org.apache.spark.scheduler.EventLoggingListener
-import org.apache.spark.scheduler.SparkListenerEnvironmentUpdate
 
 /**
  * An event bus which posts events to its listeners.
@@ -154,8 +152,6 @@ private[spark] trait ListenerBus[L <: AnyRef, E] extends Logging {
 
   private def redactEvent(e: E): E = {
     e match {
-      case event: SparkListenerEnvironmentUpdate =>
-        EventLoggingListener.redactEvent(env.conf, event).asInstanceOf[E]
       case _ => e
     }
   }

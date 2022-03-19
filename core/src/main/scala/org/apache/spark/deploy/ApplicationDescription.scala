@@ -26,7 +26,6 @@ private[spark] case class ApplicationDescription(
     maxCores: Option[Int],
     memoryPerExecutorMB: Int,
     command: Command,
-    appUiUrl: String,
     eventLogDir: Option[URI] = None,
     // short name of compression codec used when writing event logs, if any (e.g. lzf)
     eventLogCodec: Option[String] = None,

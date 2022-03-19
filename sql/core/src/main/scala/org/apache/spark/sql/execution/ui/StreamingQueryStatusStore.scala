@@ -20,7 +20,6 @@ package org.apache.spark.sql.execution.ui
 import java.util.UUID
 
 import org.apache.spark.sql.streaming.ui.{StreamingQueryData, StreamingQueryProgressWrapper, StreamingQueryUIData}
-import org.apache.spark.status.KVUtils
 import org.apache.spark.util.kvstore.KVStore
 
 /**

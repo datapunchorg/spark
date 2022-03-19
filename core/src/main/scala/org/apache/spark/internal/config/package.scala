@@ -24,7 +24,7 @@ import org.apache.spark.launcher.SparkLauncher
 import org.apache.spark.metrics.GarbageCollectionMetrics
 import org.apache.spark.network.shuffle.Constants
 import org.apache.spark.network.util.ByteUnit
-import org.apache.spark.scheduler.{EventLoggingListener, SchedulingMode}
+import org.apache.spark.scheduler.SchedulingMode
 import org.apache.spark.shuffle.sort.io.LocalDiskShuffleDataIO
 import org.apache.spark.storage.{DefaultTopologyMapper, RandomBlockReplicationPolicy}
 import org.apache.spark.unsafe.array.ByteArrayMethods
@@ -150,7 +150,7 @@ package object config {
   private[spark] val EVENT_LOG_DIR = ConfigBuilder("spark.eventLog.dir")
     .version("1.0.0")
     .stringConf
-    .createWithDefault(EventLoggingListener.DEFAULT_LOG_DIR)
+    .createWithDefault("")
 
   private[spark] val EVENT_LOG_COMPRESS =
     ConfigBuilder("spark.eventLog.compress")

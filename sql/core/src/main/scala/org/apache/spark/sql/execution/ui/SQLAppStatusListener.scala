@@ -33,7 +33,7 @@ import org.apache.spark.sql.errors.QueryExecutionErrors
 import org.apache.spark.sql.execution.SQLExecution
 import org.apache.spark.sql.execution.metric._
 import org.apache.spark.sql.internal.StaticSQLConf._
-import org.apache.spark.status.{ElementTrackingStore, KVUtils, LiveEntity}
+import org.apache.spark.status.{ElementTrackingStore, LiveEntity}
 import org.apache.spark.util.Utils
 import org.apache.spark.util.collection.OpenHashMap
 

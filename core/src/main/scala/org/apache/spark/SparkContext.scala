@@ -64,11 +64,9 @@ import org.apache.spark.scheduler.cluster.StandaloneSchedulerBackend
 import org.apache.spark.scheduler.local.LocalSchedulerBackend
 import org.apache.spark.shuffle.ShuffleDataIOUtils
 import org.apache.spark.shuffle.api.ShuffleDriverComponents
-import org.apache.spark.status.{AppStatusSource, AppStatusStore}
 import org.apache.spark.status.api.v1.ThreadStackTrace
 import org.apache.spark.storage._
 import org.apache.spark.storage.BlockManagerMessages.TriggerThreadDump
-import org.apache.spark.ui.{ConsoleProgressBar, SparkUI}
 import org.apache.spark.util._
 import org.apache.spark.util.logging.DriverLogger
 
@@ -206,9 +204,6 @@ class SparkContext(config: SparkConf) extends Logging {
   private var _eventLogCodec: Option[String] = None
   private var _listenerBus: LiveListenerBus = _
   private var _env: SparkEnv = _
-  private var _statusTracker: SparkStatusTracker = _
-  private var _progressBar: Option[ConsoleProgressBar] = None
-  private var _ui: Option[SparkUI] = None
   private var _hadoopConfiguration: Configuration = _
   private var _executorMemory: Int = _
   private var _schedulerBackend: SchedulerBackend = _
@@ -217,7 +212,6 @@ class SparkContext(config: SparkConf) extends Logging {
   @volatile private var _dagScheduler: DAGScheduler = _
   private var _applicationId: String = _
   private var _applicationAttemptId: Option[String] = None
-  private var _eventLogger: Option[EventLoggingListener] = None
   private var _driverLogger: Option[DriverLogger] = None
   private var _executorAllocationManager: Option[ExecutorAllocationManager] = None
   private var _cleaner: Option[ContextCleaner] = None
@@ -226,7 +220,6 @@ class SparkContext(config: SparkConf) extends Logging {
   private var _files: Seq[String] = _
   private var _archives: Seq[String] = _
   private var _shutdownHookRef: AnyRef = _
-  private var _statusStore: AppStatusStore = _
   private var _heartbeater: Heartbeater = _
   private var _resources: immutable.Map[String, ResourceInformation] = _
   private var _shuffleDriverComponents: ShuffleDriverComponents = _
@@ -266,8 +259,6 @@ class SparkContext(config: SparkConf) extends Logging {
    */
   def isStopped: Boolean = stopped.get()
 
-  private[spark] def statusStore: AppStatusStore = _statusStore
-
   // An asynchronous listener bus for Spark events
   private[spark] def listenerBus: LiveListenerBus = _listenerBus
 
@@ -291,13 +282,6 @@ class SparkContext(config: SparkConf) extends Logging {
     val map: ConcurrentMap[Int, RDD[_]] = new MapMaker().weakValues().makeMap[Int, RDD[_]]()
     map.asScala
   }
-  def statusTracker: SparkStatusTracker = _statusTracker
-
-  private[spark] def progressBar: Option[ConsoleProgressBar] = _progressBar
-
-  private[spark] def ui: Option[SparkUI] = _ui
-
-  def uiWebUrl: Option[String] = _ui.map(_.webUrl)
 
   /**
    * A default Hadoop Configuration for the Hadoop code (e.g. file systems) that we reuse.
@@ -340,8 +324,6 @@ class SparkContext(config: SparkConf) extends Logging {
    */
   def applicationId: String = _applicationId
   def applicationAttemptId: Option[String] = _applicationAttemptId
-
-  private[spark] def eventLogger: Option[EventLoggingListener] = _eventLogger
 
   private[spark] def executorAllocationManager: Option[ExecutorAllocationManager] =
     _executorAllocationManager
@@ -454,12 +436,6 @@ class SparkContext(config: SparkConf) extends Logging {
     _listenerBus = new LiveListenerBus(_conf)
     _resourceProfileManager = new ResourceProfileManager(_conf, _listenerBus)
 
-    // Initialize the app status store and listener before SparkEnv is created so that it gets
-    // all events.
-    val appStatusSource = AppStatusSource.createSource(conf)
-    _statusStore = AppStatusStore.createLiveStore(conf, appStatusSource)
-    listenerBus.addToStatusQueue(_statusStore.listener.get)
-
     // Create the Spark execution environment (cache, map output tracker, etc)
     _env = createSparkEnv(_conf, isLocal, listenerBus)
     SparkEnv.set(_env)
@@ -469,27 +445,6 @@ class SparkContext(config: SparkConf) extends Logging {
       val replUri = _env.rpcEnv.fileServer.addDirectory("/classes", new File(path))
       _conf.set("spark.repl.class.uri", replUri)
     }
-
-    _statusTracker = new SparkStatusTracker(this, _statusStore)
-
-    _progressBar =
-      if (_conf.get(UI_SHOW_CONSOLE_PROGRESS)) {
-        Some(new ConsoleProgressBar(this))
-      } else {
-        None
-      }
-
-    _ui =
-      if (conf.get(UI_ENABLED)) {
-        Some(SparkUI.create(Some(this), _statusStore, _conf, _env.securityManager, appName, "",
-          startTime))
-      } else {
-        // For tests, do not enable the UI
-        None
-      }
-    // Bind the UI before starting the task scheduler to communicate
-    // the bound port to the cluster manager properly
-    _ui.foreach(_.bind())
 
     _hadoopConfiguration = SparkHadoopUtil.get.newConfiguration(_conf)
     // Performance optimization: this dummy call to .size() triggers eager evaluation of
@@ -596,25 +551,12 @@ class SparkContext(config: SparkConf) extends Logging {
         "/proxy/" + _applicationId
       System.setProperty("spark.ui.proxyBase", proxyUrl)
     }
-    _ui.foreach(_.setAppId(_applicationId))
     _env.blockManager.initialize(_applicationId)
     FallbackStorage.registerBlockManagerIfNeeded(_env.blockManager.master, _conf)
 
     // The metrics system for Driver need to be set spark.app.id to app ID.
     // So it should start after we get app ID from the task scheduler and set spark.app.id.
     _env.metricsSystem.start(_conf.get(METRICS_STATIC_SOURCES_ENABLED))
-
-    _eventLogger =
-      if (isEventLogEnabled) {
-        val logger =
-          new EventLoggingListener(_applicationId, _applicationAttemptId, _eventLogDir.get,
-            _conf, _hadoopConfiguration)
-        logger.start()
-        listenerBus.addToEventLogQueue(logger)
-        Some(logger)
-      } else {
-        None
-      }
 
     _cleaner =
       if (_conf.get(CLEANER_REFERENCE_TRACKING)) {
@@ -644,11 +586,6 @@ class SparkContext(config: SparkConf) extends Logging {
     postEnvironmentUpdate()
     postApplicationStart()
 
-    // After application started, attach handlers to started server and start handler.
-    _ui.foreach(_.attachAllHandler())
-    // Attach the driver metrics servlet handler to the web ui after the metrics system is started.
-    _env.metricsSystem.getServletHandlers.foreach(handler => ui.foreach(_.attachHandler(handler)))
-
     // Make sure the context is stopped if the user forgets about it. This avoids leaving
     // unfinished event logs around after the JVM exits cleanly. It doesn't help if the JVM
     // is killed, though.
@@ -676,7 +613,6 @@ class SparkContext(config: SparkConf) extends Logging {
     _executorAllocationManager.foreach { e =>
       _env.metricsSystem.registerSource(e.executorAllocationManagerSource)
     }
-    appStatusSource.foreach(_env.metricsSystem.registerSource(_))
     _plugins.foreach(_.registerMetrics(applicationId))
   } catch {
     case NonFatal(e) =>
@@ -1856,13 +1792,6 @@ class SparkContext(config: SparkConf) extends Logging {
   private[spark] def getRDDStorageInfo(filter: RDD[_] => Boolean): Array[RDDInfo] = {
     assertNotStopped()
     val rddInfos = persistentRdds.values.filter(filter).map(RDDInfo.fromRdd).toArray
-    rddInfos.foreach { rddInfo =>
-      val rddId = rddInfo.id
-      val rddStorageInfo = statusStore.asOption(statusStore.rdd(rddId))
-      rddInfo.numCachedPartitions = rddStorageInfo.map(_.numCachedPartitions).getOrElse(0)
-      rddInfo.memSize = rddStorageInfo.map(_.memoryUsed).getOrElse(0L)
-      rddInfo.diskSize = rddStorageInfo.map(_.diskUsed).getOrElse(0L)
-    }
     rddInfos.filter(_.isCached)
   }
 
@@ -2082,9 +2011,6 @@ class SparkContext(config: SparkConf) extends Logging {
       _driverLogger.foreach(_.stop())
     }
     Utils.tryLogNonFatalError {
-      _ui.foreach(_.stop())
-    }
-    Utils.tryLogNonFatalError {
       _cleaner.foreach(_.stop())
     }
     Utils.tryLogNonFatalError {
@@ -2111,9 +2037,6 @@ class SparkContext(config: SparkConf) extends Logging {
       _plugins.foreach(_.shutdown())
     }
     FallbackStorage.cleanUp(_conf, _hadoopConfiguration)
-    Utils.tryLogNonFatalError {
-      _eventLogger.foreach(_.stop())
-    }
     if (_heartbeater != null) {
       Utils.tryLogNonFatalError {
         _heartbeater.stop()
@@ -2130,9 +2053,6 @@ class SparkContext(config: SparkConf) extends Logging {
         env.rpcEnv.stop(_heartbeatReceiver)
       }
     }
-    Utils.tryLogNonFatalError {
-      _progressBar.foreach(_.stop())
-    }
     _taskScheduler = null
     // TODO: Cache.stop()?
     if (_env != null) {
@@ -2140,9 +2060,6 @@ class SparkContext(config: SparkConf) extends Logging {
         _env.stop()
       }
       SparkEnv.set(null)
-    }
-    if (_statusStore != null) {
-      _statusStore.close()
     }
     // Clear this `InheritableThreadLocal`, or it will still be inherited in child threads even this
     // `SparkContext` is stopped.
@@ -2226,7 +2143,6 @@ class SparkContext(config: SparkConf) extends Logging {
       logInfo("RDD's recursive dependencies:\n" + rdd.toDebugString)
     }
     dagScheduler.runJob(rdd, cleanedFunc, partitions, callSite, resultHandler, localProperties.get)
-    progressBar.foreach(_.finishAll())
     rdd.doCheckpoint()
   }
 
@@ -2603,8 +2519,6 @@ class SparkContext(config: SparkConf) extends Logging {
     executorMetricsSource.foreach(_.updateMetricsSnapshot(currentMetrics))
 
     val driverUpdates = new HashMap[(Int, Int), ExecutorMetrics]
-    // In the driver, we do not track per-stage metrics, so use a dummy stage for the key
-    driverUpdates.put(EventLoggingListener.DRIVER_STAGE_KEY, new ExecutorMetrics(currentMetrics))
     val accumUpdates = new Array[(Long, Int, Int, Seq[AccumulableInfo])](0)
     listenerBus.post(SparkListenerExecutorMetricsUpdate("driver", accumUpdates,
       driverUpdates))

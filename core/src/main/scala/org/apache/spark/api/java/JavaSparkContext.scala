@@ -105,8 +105,6 @@ class JavaSparkContext(val sc: SparkContext) extends Closeable {
 
   private[spark] val env = sc.env
 
-  def statusTracker: JavaSparkStatusTracker = new JavaSparkStatusTracker(sc)
-
   def isLocal: java.lang.Boolean = sc.isLocal
 
   def sparkUser: String = sc.sparkUser

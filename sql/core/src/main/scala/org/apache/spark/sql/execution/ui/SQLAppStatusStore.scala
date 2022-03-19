@@ -27,7 +27,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 
 import org.apache.spark.JobExecutionStatus
-import org.apache.spark.status.KVUtils.KVIndexParam
+import .KVIndexParam
 import org.apache.spark.util.kvstore.{KVIndex, KVStore}
 
 /**

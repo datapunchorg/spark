@@ -48,9 +48,7 @@ private[deploy] class ExecutorRunner(
     val memory: Int,
     val worker: RpcEndpointRef,
     val workerId: String,
-    val webUiScheme: String,
     val host: String,
-    val webUiPort: Int,
     val publicAddress: String,
     val sparkHome: File,
     val executorDir: File,
@@ -174,7 +172,7 @@ private[deploy] class ExecutorRunner(
           conf.get(UI_REVERSE_PROXY_URL.key, "").stripSuffix("/") +
             s"/proxy/$workerId/logPage/?appId=$appId&executorId=$execId&logType="
         } else {
-          s"$webUiScheme$publicAddress:$webUiPort/logPage/?appId=$appId&executorId=$execId&logType="
+          throw new RuntimeException("Not supported")
         }
       builder.environment.put("SPARK_LOG_URL_STDERR", s"${baseUrl}stderr")
       builder.environment.put("SPARK_LOG_URL_STDOUT", s"${baseUrl}stdout")

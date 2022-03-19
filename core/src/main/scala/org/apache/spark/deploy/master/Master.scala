@@ -29,7 +29,6 @@ import org.apache.spark.deploy.{ApplicationDescription, DriverDescription, Execu
 import org.apache.spark.deploy.DeployMessages._
 import org.apache.spark.deploy.master.DriverState.DriverState
 import org.apache.spark.deploy.master.MasterMessages._
-import org.apache.spark.deploy.master.ui.MasterWebUI
 import org.apache.spark.deploy.rest.StandaloneRestServer
 import org.apache.spark.internal.Logging
 import org.apache.spark.internal.config._
@@ -90,11 +89,7 @@ private[deploy] class Master(
     MetricsSystem.createMetricsSystem(MetricsSystemInstances.APPLICATIONS, conf)
   private val masterSource = new MasterSource(this)
 
-  // After onStart, webUi will be set
-  private var webUi: MasterWebUI = null
-
   private val masterUrl = address.toSparkURL
-  private var masterWebUiUrl: String = _
 
   private var state = RecoveryState.STANDBY
 
@@ -134,20 +129,14 @@ private[deploy] class Master(
   override def onStart(): Unit = {
     logInfo("Starting Spark master at " + masterUrl)
     logInfo(s"Running Spark version ${org.apache.spark.SPARK_VERSION}")
-    webUi = new MasterWebUI(this, webUiPort)
-    webUi.bind()
-    masterWebUiUrl = webUi.webUrl
     if (reverseProxy) {
       val uiReverseProxyUrl = conf.get(UI_REVERSE_PROXY_URL).map(_.stripSuffix("/"))
       if (uiReverseProxyUrl.nonEmpty) {
         System.setProperty("spark.ui.proxyBase", uiReverseProxyUrl.get)
         // If the master URL has a path component, it must end with a slash.
         // Otherwise the browser generates incorrect relative links
-        masterWebUiUrl = uiReverseProxyUrl.get + "/"
       }
-      webUi.addProxy()
-      logInfo(s"Spark Master is acting as a reverse proxy. Master, Workers and " +
-       s"Applications UIs are available at $masterWebUiUrl")
+      logInfo(s"Spark Master is acting as a reverse proxy.")
     }
     checkForWorkerTimeOutTask = forwardMessageThread.scheduleAtFixedRate(
       () => Utils.tryLogNonFatalError { self.send(CheckForWorkerTimeOut) },
@@ -162,10 +151,6 @@ private[deploy] class Master(
     masterMetricsSystem.registerSource(masterSource)
     masterMetricsSystem.start()
     applicationMetricsSystem.start()
-    // Attach the master and app metrics servlet handler to the web ui after the metrics systems are
-    // started.
-    masterMetricsSystem.getServletHandlers.foreach(webUi.attachHandler)
-    applicationMetricsSystem.getServletHandlers.foreach(webUi.attachHandler)
 
     val serializer = new JavaSerializer(conf)
     val (persistenceEngine_, leaderElectionAgent_) = recoveryMode match {
@@ -202,7 +187,6 @@ private[deploy] class Master(
       checkForWorkerTimeOutTask.cancel(true)
     }
     forwardMessageThread.shutdownNow()
-    webUi.stop()
     restServer.foreach(_.stop())
     masterMetricsSystem.stop()
     applicationMetricsSystem.stop()
@@ -270,15 +254,12 @@ private[deploy] class Master(
         workerHost, workerPort, cores, Utils.megabytesToString(memory)))
       if (state == RecoveryState.STANDBY) {
         workerRef.send(MasterInStandby)
-      } else if (idToWorker.contains(id)) {
-        workerRef.send(RegisteredWorker(self, masterWebUiUrl, masterAddress, true))
       } else {
         val workerResources = resources.map(r => r._1 -> WorkerResourceInfo(r._1, r._2.addresses))
         val worker = new WorkerInfo(id, workerHost, workerPort, cores, memory,
           workerRef, workerWebUiUrl, workerResources)
         if (registerWorker(worker)) {
           persistenceEngine.addWorker(worker)
-          workerRef.send(RegisteredWorker(self, masterWebUiUrl, masterAddress, false))
           schedule()
         } else {
           val workerAddress = worker.endpoint.address
@@ -479,9 +460,6 @@ private[deploy] class Master(
         workers.toArray, apps.toArray, completedApps.toArray,
         drivers.toArray, completedDrivers.toArray, state))
 
-    case BoundPortsRequest =>
-      context.reply(BoundPortsResponse(address.port, webUi.boundPort, restServerBoundPort))
-
     case RequestExecutors(appId, requestedTotal) =>
       context.reply(handleRequestExecutors(appId, requestedTotal))
 
@@ -565,7 +543,6 @@ private[deploy] class Master(
       try {
         registerApplication(app)
         app.state = ApplicationState.UNKNOWN
-        app.driver.send(MasterChanged(self, masterWebUiUrl))
       } catch {
         case e: Exception => logInfo("App " + app.id + " had exception on reconnect")
       }
@@ -582,7 +559,6 @@ private[deploy] class Master(
       try {
         registerWorker(worker)
         worker.state = WorkerState.UNKNOWN
-        worker.endpoint.send(MasterChanged(self, masterWebUiUrl))
       } catch {
         case e: Exception => logInfo("Worker " + worker.id + " had exception on reconnect")
       }

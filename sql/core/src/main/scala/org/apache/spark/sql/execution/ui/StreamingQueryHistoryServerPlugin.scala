@@ -21,7 +21,7 @@ import org.apache.spark.SparkConf
 import org.apache.spark.scheduler.SparkListener
 import org.apache.spark.sql.execution.streaming.StreamingQueryListenerBus
 import org.apache.spark.sql.streaming.ui.{StreamingQueryStatusListener, StreamingQueryTab}
-import org.apache.spark.status.{AppHistoryServerPlugin, ElementTrackingStore}
+import org.apache.spark.status.ElementTrackingStore
 import org.apache.spark.ui.SparkUI
 
 class StreamingQueryHistoryServerPlugin extends AppHistoryServerPlugin {

@@ -29,8 +29,8 @@ import org.apache.spark.sql.internal.StaticSQLConf
 import org.apache.spark.sql.streaming.{StreamingQueryListener, StreamingQueryProgress}
 import org.apache.spark.sql.streaming.ui.StreamingQueryProgressWrapper._
 import org.apache.spark.sql.streaming.ui.UIUtils.parseProgressTimestamp
-import org.apache.spark.status.{ElementTrackingStore, KVUtils}
-import org.apache.spark.status.KVUtils.KVIndexParam
+import org.apache.spark.status.ElementTrackingStore
+import .KVIndexParam
 import org.apache.spark.util.kvstore.KVIndex
 
 /**

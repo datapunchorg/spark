@@ -27,7 +27,6 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import org.eclipse.jetty.servlet.ServletContextHandler
 
 import org.apache.spark.SparkConf
-import org.apache.spark.ui.JettyUtils._
 
 private[spark] class MetricsServlet(
     val property: Properties, val registry: MetricRegistry) extends Sink {
@@ -47,8 +46,6 @@ private[spark] class MetricsServlet(
 
   def getHandlers(conf: SparkConf): Array[ServletContextHandler] = {
     Array[ServletContextHandler](
-      createServletHandler(servletPath,
-        new ServletParams(request => getMetricsSnapshot(request), "text/json"), conf)
     )
   }
 

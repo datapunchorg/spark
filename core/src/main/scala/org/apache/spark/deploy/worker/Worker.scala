@@ -35,7 +35,6 @@ import org.apache.spark.deploy.DeployMessages._
 import org.apache.spark.deploy.ExternalShuffleService
 import org.apache.spark.deploy.StandaloneResourceUtils._
 import org.apache.spark.deploy.master.{DriverState, Master}
-import org.apache.spark.deploy.worker.ui.WorkerWebUI
 import org.apache.spark.internal.{config, Logging}
 import org.apache.spark.internal.config.Tests.IS_TESTING
 import org.apache.spark.internal.config.UI._
@@ -187,7 +186,6 @@ private[deploy] class Worker(
     val envVar = conf.getenv("SPARK_PUBLIC_DNS")
     if (envVar != null) envVar else host
   }
-  private var webUi: WorkerWebUI = null
 
   private var connectionAttemptCount = 0
 
@@ -234,16 +232,11 @@ private[deploy] class Worker(
     createWorkDir()
     startExternalShuffleService()
     setupWorkerResources()
-    webUi = new WorkerWebUI(this, workDir, webUiPort)
-    webUi.bind()
 
-    workerWebUiUrl = s"${webUi.scheme}$publicAddress:${webUi.boundPort}"
     registerWithMaster()
 
     metricsSystem.registerSource(workerSource)
     metricsSystem.start()
-    // Attach the worker metrics servlet handler to the web ui after the metrics system is started.
-    metricsSystem.getServletHandlers.foreach(webUi.attachHandler)
   }
 
   private def setupWorkerResources(): Unit = {
@@ -611,9 +604,7 @@ private[deploy] class Worker(
             memory_,
             self,
             workerId,
-            webUi.scheme,
             host,
-            webUi.boundPort,
             publicAddress,
             sparkHome,
             executorDir,
@@ -824,7 +815,6 @@ private[deploy] class Worker(
     executors.values.foreach(_.kill())
     drivers.values.foreach(_.kill())
     shuffleService.stop()
-    webUi.stop()
     metricsSystem.stop()
   }
 

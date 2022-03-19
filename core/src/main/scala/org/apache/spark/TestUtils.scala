@@ -25,7 +25,6 @@ import java.nio.file.attribute.PosixFilePermission.{OWNER_EXECUTE, OWNER_READ, O
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
 import java.util.{Arrays, EnumSet, Locale}
-import java.util.concurrent.{TimeoutException, TimeUnit}
 import java.util.jar.{JarEntry, JarOutputStream, Manifest}
 import java.util.regex.Pattern
 import javax.net.ssl._
@@ -397,30 +396,6 @@ private[spark] object TestUtils {
     } finally {
       server.stop()
     }
-  }
-
-  /**
-   * Wait until at least `numExecutors` executors are up, or throw `TimeoutException` if the waiting
-   * time elapsed before `numExecutors` executors up. Exposed for testing.
-   *
-   * @param numExecutors the number of executors to wait at least
-   * @param timeout time to wait in milliseconds
-   */
-  private[spark] def waitUntilExecutorsUp(
-      sc: SparkContext,
-      numExecutors: Int,
-      timeout: Long): Unit = {
-    val finishTime = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeout)
-    while (System.nanoTime() < finishTime) {
-      if (sc.statusTracker.getExecutorInfos.length > numExecutors) {
-        return
-      }
-      // Sleep rather than using wait/notify, because this is used only for testing and wait/notify
-      // add overhead in the general case.
-      Thread.sleep(10)
-    }
-    throw new TimeoutException(
-      s"Can't find $numExecutors executors before $timeout milliseconds elapsed")
   }
 
   /**

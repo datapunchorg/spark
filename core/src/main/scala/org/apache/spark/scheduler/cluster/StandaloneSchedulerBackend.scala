@@ -105,7 +105,6 @@ private[spark] class StandaloneSchedulerBackend(
     val javaOpts = sparkJavaOpts ++ extraJavaOpts
     val command = Command("org.apache.spark.executor.CoarseGrainedExecutorBackend",
       args, sc.executorEnvs, classPathEntries ++ testingClassPath, libraryPathEntries, javaOpts)
-    val webUrl = sc.ui.map(_.webUrl).getOrElse("")
     val coresPerExecutor = conf.getOption(config.EXECUTOR_CORES.key).map(_.toInt)
     // If we're using dynamic allocation, set our initial executor limit to 0 for now.
     // ExecutorAllocationManager will send the real initial limit to the Master later.
@@ -118,7 +117,7 @@ private[spark] class StandaloneSchedulerBackend(
     val executorResourceReqs = ResourceUtils.parseResourceRequirements(conf,
       config.SPARK_EXECUTOR_PREFIX)
     val appDesc = ApplicationDescription(sc.appName, maxCores, sc.executorMemory, command,
-      webUrl, sc.eventLogDir, sc.eventLogCodec, coresPerExecutor, initialExecutorLimit,
+      sc.eventLogDir, sc.eventLogCodec, coresPerExecutor, initialExecutorLimit,
       resourceReqsPerExecutor = executorResourceReqs)
     client = new StandaloneAppClient(sc.env.rpcEnv, masters, appDesc, this, conf)
     client.start()

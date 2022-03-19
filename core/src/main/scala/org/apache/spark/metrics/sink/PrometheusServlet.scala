@@ -24,7 +24,6 @@ import com.codahale.metrics.MetricRegistry
 import org.eclipse.jetty.servlet.ServletContextHandler
 
 import org.apache.spark.SparkConf
-import org.apache.spark.ui.JettyUtils._
 
 /**
  * This exposes the metrics of the given registry with Prometheus format.
@@ -42,8 +41,6 @@ private[spark] class PrometheusServlet(
 
   def getHandlers(conf: SparkConf): Array[ServletContextHandler] = {
     Array[ServletContextHandler](
-      createServletHandler(servletPath,
-        new ServletParams(request => getMetricsSnapshot(request), "text/plain"), conf)
     )
   }
 
