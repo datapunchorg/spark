@@ -31,7 +31,7 @@ import scala.util.matching.Regex
 
 import org.apache.hadoop.fs.Path
 
-import org.apache.spark.{SparkConf, SparkContext, TaskContext}
+import org.apache.spark.SparkConf
 import org.apache.spark.internal.Logging
 import org.apache.spark.internal.config._
 import org.apache.spark.internal.config.{IGNORE_MISSING_FILES => SPARK_IGNORE_MISSING_FILES}
@@ -198,38 +198,11 @@ object SQLConf {
    * run unit tests (that does not involve SparkSession) in serial order.
    */
   def get: SQLConf = {
-    if (Utils.isInRunningSparkTask) {
-      val conf = existingConf.get()
-      if (conf != null) {
-        conf
-      } else {
-        new ReadOnlySQLConf(TaskContext.get())
-      }
+    val conf = existingConf.get()
+    if (conf != null) {
+      conf
     } else {
-      val isSchedulerEventLoopThread = SparkContext.getActive
-        .flatMap { sc => Option(sc.dagScheduler) }
-        .map(_.eventProcessLoop.eventThread)
-        .exists(_.getId == Thread.currentThread().getId)
-      if (isSchedulerEventLoopThread) {
-        // DAGScheduler event loop thread does not have an active SparkSession, the `confGetter`
-        // will return `fallbackConf` which is unexpected. Here we require the caller to get the
-        // conf within `withExistingConf`, otherwise fail the query.
-        val conf = existingConf.get()
-        if (conf != null) {
-          conf
-        } else if (Utils.isTesting) {
-          throw QueryExecutionErrors.cannotGetSQLConfInSchedulerEventLoopThreadError()
-        } else {
-          confGetter.get()()
-        }
-      } else {
-        val conf = existingConf.get()
-        if (conf != null) {
-          conf
-        } else {
-          confGetter.get()()
-        }
-      }
+      confGetter.get()()
     }
   }
 
