@@ -3409,13 +3409,6 @@
     </profile>
 
     <profile>
-      <id>hadoop-cloud</id>
-      <modules>
-        <module>hadoop-cloud</module>
-      </modules>
-    </profile>
-
-    <profile>
       <id>test-java-home</id>
       <activation>
         <property><name>env.JAVA_HOME</name></property>
