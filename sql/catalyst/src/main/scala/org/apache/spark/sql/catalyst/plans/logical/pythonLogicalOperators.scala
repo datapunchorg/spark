@@ -17,7 +17,7 @@
 
 package org.apache.spark.sql.catalyst.plans.logical
 
-import org.apache.spark.sql.catalyst.expressions.{Attribute, AttributeSet, Expression, PythonUDF}
+import org.apache.spark.sql.catalyst.expressions.{Attribute, AttributeSet, Expression}
 
 /**
  * FlatMap groups using a udf: pandas.Dataframe -> pandas.DataFrame.
@@ -95,40 +95,6 @@ case class FlatMapCoGroupsInPandas(
   override protected def withNewChildrenInternal(
       newLeft: LogicalPlan, newRight: LogicalPlan): FlatMapCoGroupsInPandas =
     copy(left = newLeft, right = newRight)
-}
-
-trait BaseEvalPython extends UnaryNode {
-
-  def udfs: Seq[PythonUDF]
-
-  def resultAttrs: Seq[Attribute]
-
-  override def output: Seq[Attribute] = child.output ++ resultAttrs
-
-  override def producedAttributes: AttributeSet = AttributeSet(resultAttrs)
-}
-
-/**
- * A logical plan that evaluates a [[PythonUDF]]
- */
-case class BatchEvalPython(
-    udfs: Seq[PythonUDF],
-    resultAttrs: Seq[Attribute],
-    child: LogicalPlan) extends BaseEvalPython {
-  override protected def withNewChildInternal(newChild: LogicalPlan): BatchEvalPython =
-    copy(child = newChild)
-}
-
-/**
- * A logical plan that evaluates a [[PythonUDF]] with Apache Arrow.
- */
-case class ArrowEvalPython(
-    udfs: Seq[PythonUDF],
-    resultAttrs: Seq[Attribute],
-    child: LogicalPlan,
-    evalType: Int) extends BaseEvalPython {
-  override protected def withNewChildInternal(newChild: LogicalPlan): ArrowEvalPython =
-    copy(child = newChild)
 }
 
 /**

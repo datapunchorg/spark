@@ -31,7 +31,6 @@ import org.apache.spark.internal.Logging
 import org.apache.spark.internal.config.Tests.IS_TESTING
 import org.apache.spark.internal.config._
 import org.apache.spark.network.util.JavaUtils
-import org.apache.spark.util.Utils.getSimpleName
 
 import scala.collection.JavaConverters._
 import scala.collection.Map
@@ -564,7 +563,7 @@ private[spark] object Utils extends Logging {
         cls.getEnclosingMethod == null && cls.getEnclosingClass != null
     }
   }
-  
+
   /**
    * Safer than Class obj's getSimpleName which may throw Malformed class name error in scala.
    * This method mimics scalatest's getSimpleNameOfAnObjectsClass.

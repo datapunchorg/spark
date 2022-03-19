@@ -228,7 +228,6 @@ trait CheckAnalysis extends PredicateHelper with LookupCatalog {
             w.windowFunction match {
               case _: AggregateExpression | _: FrameLessOffsetWindowFunction |
                   _: AggregateWindowFunction => // OK
-              case f: PythonUDF if PythonUDF.isWindowPandasUDF(f) => // OK
               case other =>
                 failAnalysis(s"Expression '$other' not supported within a window function.")
             }
@@ -280,14 +279,13 @@ trait CheckAnalysis extends PredicateHelper with LookupCatalog {
 
           case a @ Aggregate(groupingExprs, aggregateExprs, child) =>
             def isAggregateExpression(expr: Expression): Boolean = {
-              expr.isInstanceOf[AggregateExpression] || PythonUDF.isGroupedAggPandasUDF(expr)
+              expr.isInstanceOf[AggregateExpression]
             }
 
             def checkValidAggregateExpression(expr: Expression): Unit = expr match {
               case expr: Expression if isAggregateExpression(expr) =>
                 val aggFunction = expr match {
                   case agg: AggregateExpression => agg.aggregateFunction
-                  case udf: PythonUDF => udf
                 }
                 aggFunction.children.foreach { child =>
                   child.foreach {
