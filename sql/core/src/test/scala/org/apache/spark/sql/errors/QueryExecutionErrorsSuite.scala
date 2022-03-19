@@ -26,7 +26,6 @@ import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.internal.SQLConf.LegacyBehaviorPolicy.EXCEPTION
 import org.apache.spark.sql.test.SharedSparkSession
 import org.apache.spark.sql.types.{StructType, TimestampType}
-import org.apache.spark.sql.util.ArrowUtils
 
 class QueryExecutionErrorsSuite extends QueryTest
   with ParquetTest with OrcTest with SharedSparkSession {

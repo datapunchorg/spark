@@ -28,7 +28,6 @@ import org.apache.arrow.vector.ipc.ArrowStreamReader
 import org.apache.spark.{SparkEnv, TaskContext}
 import org.apache.spark.api.python.{BasePythonRunner, SpecialLengths}
 import org.apache.spark.sql.types.StructType
-import org.apache.spark.sql.util.ArrowUtils
 import org.apache.spark.sql.vectorized.{ArrowColumnVector, ColumnarBatch, ColumnVector}
 
 /**

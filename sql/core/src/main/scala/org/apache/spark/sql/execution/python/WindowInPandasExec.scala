@@ -31,7 +31,6 @@ import org.apache.spark.sql.errors.QueryExecutionErrors
 import org.apache.spark.sql.execution.{ExternalAppendOnlyUnsafeRowArray, SparkPlan}
 import org.apache.spark.sql.execution.window._
 import org.apache.spark.sql.types._
-import org.apache.spark.sql.util.ArrowUtils
 import org.apache.spark.util.Utils
 
 /**

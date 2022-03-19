@@ -22,7 +22,6 @@ import org.apache.arrow.vector.complex._
 
 import org.apache.spark.SparkFunSuite
 import org.apache.spark.sql.types._
-import org.apache.spark.sql.util.ArrowUtils
 import org.apache.spark.unsafe.types.UTF8String
 
 class ArrowColumnVectorSuite extends SparkFunSuite {

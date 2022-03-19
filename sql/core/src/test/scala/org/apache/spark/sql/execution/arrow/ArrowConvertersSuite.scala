@@ -35,7 +35,6 @@ import org.apache.spark.sql.catalyst.util.DateTimeUtils
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.test.SharedSparkSession
 import org.apache.spark.sql.types.{ArrayType, BinaryType, Decimal, IntegerType, NullType, StructField, StructType}
-import org.apache.spark.sql.util.ArrowUtils
 import org.apache.spark.util.Utils
 
 
