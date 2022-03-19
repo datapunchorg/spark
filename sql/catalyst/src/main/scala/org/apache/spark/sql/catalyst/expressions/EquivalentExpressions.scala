@@ -197,7 +197,10 @@ class EquivalentExpressions {
       expr.exists(_.isInstanceOf[LambdaVariable]) ||
       // `PlanExpression` wraps query plan. To compare query plans of `PlanExpression` on executor,
       // can cause error like NPE.
-      (expr.isInstanceOf[PlanExpression[_]] && Utils.isInRunningSparkTask)
+      // modified by datapunch
+      //(expr.isInstanceOf[PlanExpression[_]] && Utils.isInRunningSparkTask)
+      val isInRunningSparkTask = false
+      (expr.isInstanceOf[PlanExpression[_]] && isInRunningSparkTask)
 
     if (!skip && !updateExprInMap(expr, map, useCount)) {
       val uc = useCount.signum
