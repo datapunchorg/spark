@@ -91,7 +91,6 @@
     <module>core</module>
     <module>sql/catalyst</module>
     <module>sql/core</module>
-    <module>sql/hive</module>
     <!-- See additional modules enabled by profiles below -->
   </modules>
 
