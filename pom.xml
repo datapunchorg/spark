@@ -90,7 +90,6 @@
     <module>common/tags</module>
     <module>core</module>
     <module>tools</module>
-    <module>streaming</module>
     <module>sql/catalyst</module>
     <module>sql/core</module>
     <module>sql/hive</module>
