@@ -22,7 +22,6 @@ import org.scalatest.matchers.must.Matchers
 import org.scalatest.time.SpanSugar._
 
 import org.apache.spark.TestUtils
-import org.apache.spark.deploy.SparkSubmitTestUtils
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.{QueryTest, Row, SparkSession}
 import org.apache.spark.sql.functions.{array, col, count, lit}

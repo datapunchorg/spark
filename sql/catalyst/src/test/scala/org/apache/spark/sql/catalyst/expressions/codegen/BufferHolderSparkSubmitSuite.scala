@@ -21,7 +21,6 @@ import org.scalatest.{Assertions, BeforeAndAfterEach}
 import org.scalatest.matchers.must.Matchers
 
 import org.apache.spark.TestUtils
-import org.apache.spark.deploy.SparkSubmitTestUtils
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow
 import org.apache.spark.unsafe.array.ByteArrayMethods
 import org.apache.spark.util.ResetSystemProperties
