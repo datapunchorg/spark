@@ -23,8 +23,6 @@ import java.util.concurrent.ConcurrentHashMap
 import scala.collection.JavaConverters._
 import scala.collection.mutable.LinkedHashSet
 
-import org.apache.avro.{Schema, SchemaNormalization}
-
 import org.apache.spark.internal.Logging
 import org.apache.spark.internal.config._
 import org.apache.spark.internal.config.History._
@@ -206,26 +204,6 @@ class SparkConf(loadDefaults: Boolean) extends Cloneable with Logging with Seria
 
     set(KRYO_CLASSES_TO_REGISTER, allClassNames.toSeq)
     this
-  }
-
-  private final val avroNamespace = "avro.schema."
-
-  /**
-   * Use Kryo serialization and register the given set of Avro schemas so that the generic
-   * record serializer can decrease network IO
-   */
-  def registerAvroSchemas(schemas: Schema*): SparkConf = {
-    for (schema <- schemas) {
-      set(avroNamespace + SchemaNormalization.parsingFingerprint64(schema), schema.toString)
-    }
-    this
-  }
-
-  /** Gets all the avro schemas in the configuration used in the generic Avro record serializer */
-  def getAvroSchema: Map[Long, String] = {
-    getAll.filter { case (k, v) => k.startsWith(avroNamespace) }
-      .map { case (k, v) => (k.substring(avroNamespace.length).toLong, v) }
-      .toMap
   }
 
   /** Remove a parameter from the configuration */
@@ -501,34 +479,6 @@ class SparkConf(loadDefaults: Boolean) extends Cloneable with Logging with Seria
       logWarning(msg)
     }
 
-    val executorOptsKey = EXECUTOR_JAVA_OPTIONS.key
-
-    // Used by Yarn in 1.1 and before
-    sys.props.get("spark.driver.libraryPath").foreach { value =>
-      val warning =
-        s"""
-           |spark.driver.libraryPath was detected (set to '$value').
-           |This is deprecated in Spark 1.2+.
-           |
-           |Please instead use: ${DRIVER_LIBRARY_PATH.key}
-        """.stripMargin
-      logWarning(warning)
-    }
-
-    // Validate spark.executor.extraJavaOptions
-    getOption(executorOptsKey).foreach { javaOpts =>
-      if (javaOpts.contains("-Dspark")) {
-        val msg = s"$executorOptsKey is not allowed to set Spark options (was '$javaOpts'). " +
-          "Set them directly on a SparkConf or in a properties file when using ./bin/spark-submit."
-        throw new Exception(msg)
-      }
-      if (javaOpts.contains("-Xmx")) {
-        val msg = s"$executorOptsKey is not allowed to specify max heap memory settings " +
-          s"(was '$javaOpts'). Use spark.executor.memory instead."
-        throw new Exception(msg)
-      }
-    }
-
     // Validate memory fractions
     for (key <- Seq(MEMORY_FRACTION.key, MEMORY_STORAGE_FRACTION.key)) {
       val value = getDouble(key, 0.5)
@@ -542,17 +492,6 @@ class SparkConf(loadDefaults: Boolean) extends Cloneable with Logging with Seria
         case "cluster" | "client" =>
         case e => throw new RuntimeException(s"${SUBMIT_DEPLOY_MODE.key} can only be " +
           "\"cluster\" or \"client\".")
-      }
-    }
-
-    if (contains(CORES_MAX) && contains(EXECUTOR_CORES)) {
-      val totalCores = getInt(CORES_MAX.key, 1)
-      val executorCores = get(EXECUTOR_CORES)
-      val leftCores = totalCores % executorCores
-      if (leftCores != 0) {
-        logWarning(s"Total executor cores: ${totalCores} is not " +
-          s"divisible by cores per executor: ${executorCores}, " +
-          s"the left cores: ${leftCores} will not be allocated")
       }
     }
 
@@ -730,19 +669,6 @@ private[spark] object SparkConf extends Logging {
     configsWithAlternatives.keys.flatMap { key =>
       configsWithAlternatives(key).map { cfg => (cfg.key -> (key -> cfg)) }
     }.toMap
-  }
-
-  /**
-   * Return whether the given config should be passed to an executor on start-up.
-   *
-   * Certain authentication configs are required from the executor when it connects to
-   * the scheduler, while the rest of the spark configs can be inherited from the driver later.
-   */
-  def isExecutorStartupConf(name: String): Boolean = {
-    (name.startsWith("spark.auth") && name != SecurityManager.SPARK_AUTH_SECRET_CONF) ||
-      name.startsWith("spark.rpc") ||
-      name.startsWith("spark.network") ||
-      isSparkPortConf(name)
   }
 
   /**

@@ -20,8 +20,6 @@ package org.apache.spark.internal
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 
-import org.apache.spark.launcher.SparkLauncher
-import org.apache.spark.network.shuffle.Constants
 import org.apache.spark.network.util.ByteUnit
 import org.apache.spark.unsafe.array.ByteArrayMethods
 import org.apache.spark.util.Utils
@@ -56,25 +54,6 @@ package object config {
       .stringConf
       .createOptional
 
-  private[spark] val DRIVER_CLASS_PATH =
-    ConfigBuilder(SparkLauncher.DRIVER_EXTRA_CLASSPATH)
-      .version("1.0.0")
-      .stringConf
-      .createOptional
-
-  private[spark] val DRIVER_JAVA_OPTIONS =
-    ConfigBuilder(SparkLauncher.DRIVER_EXTRA_JAVA_OPTIONS)
-      .withPrepended(SparkLauncher.DRIVER_DEFAULT_JAVA_OPTIONS)
-      .version("1.0.0")
-      .stringConf
-      .createOptional
-
-  private[spark] val DRIVER_LIBRARY_PATH =
-    ConfigBuilder(SparkLauncher.DRIVER_EXTRA_LIBRARY_PATH)
-      .version("1.0.0")
-      .stringConf
-      .createOptional
-
   private[spark] val DRIVER_USER_CLASS_PATH_FIRST =
     ConfigBuilder("spark.driver.userClassPathFirst")
       .version("1.3.0")
@@ -86,12 +65,6 @@ package object config {
     .version("1.3.0")
     .intConf
     .createWithDefault(1)
-
-  private[spark] val DRIVER_MEMORY = ConfigBuilder(SparkLauncher.DRIVER_MEMORY)
-    .doc("Amount of memory to use for the driver process, in MiB unless otherwise specified.")
-    .version("1.1.1")
-    .bytesConf(ByteUnit.MiB)
-    .createWithDefaultString("1g")
 
   private[spark] val DRIVER_MEMORY_OVERHEAD = ConfigBuilder("spark.driver.memoryOverhead")
     .doc("The amount of non-heap memory to be allocated per driver in cluster mode, " +
@@ -219,12 +192,6 @@ package object config {
   private[spark] val EXECUTOR_ID =
     ConfigBuilder("spark.executor.id").version("1.2.0").stringConf.createOptional
 
-  private[spark] val EXECUTOR_CLASS_PATH =
-    ConfigBuilder(SparkLauncher.EXECUTOR_EXTRA_CLASSPATH)
-      .version("1.0.0")
-      .stringConf
-      .createOptional
-
   private[spark] val EXECUTOR_HEARTBEAT_DROP_ZERO_ACCUMULATOR_UPDATES =
     ConfigBuilder("spark.executor.heartbeat.dropZeroAccumulatorUpdates")
       .internal()
@@ -269,35 +236,11 @@ package object config {
       .stringConf
       .createWithDefaultString("file,hdfs")
 
-  private[spark] val EXECUTOR_JAVA_OPTIONS =
-    ConfigBuilder(SparkLauncher.EXECUTOR_EXTRA_JAVA_OPTIONS)
-      .withPrepended(SparkLauncher.EXECUTOR_DEFAULT_JAVA_OPTIONS)
-      .version("1.0.0")
-      .stringConf
-      .createOptional
-
-  private[spark] val EXECUTOR_LIBRARY_PATH =
-    ConfigBuilder(SparkLauncher.EXECUTOR_EXTRA_LIBRARY_PATH)
-      .version("1.0.0")
-      .stringConf
-      .createOptional
-
   private[spark] val EXECUTOR_USER_CLASS_PATH_FIRST =
     ConfigBuilder("spark.executor.userClassPathFirst")
       .version("1.3.0")
       .booleanConf
       .createWithDefault(false)
-
-  private[spark] val EXECUTOR_CORES = ConfigBuilder(SparkLauncher.EXECUTOR_CORES)
-    .version("1.0.0")
-    .intConf
-    .createWithDefault(1)
-
-  private[spark] val EXECUTOR_MEMORY = ConfigBuilder(SparkLauncher.EXECUTOR_MEMORY)
-    .doc("Amount of memory to use per executor process, in MiB unless otherwise specified.")
-    .version("0.7.0")
-    .bytesConf(ByteUnit.MiB)
-    .createWithDefaultString("1g")
 
   private[spark] val EXECUTOR_MEMORY_OVERHEAD = ConfigBuilder("spark.executor.memoryOverhead")
     .doc("The amount of non-heap memory to be allocated per executor, in MiB unless otherwise" +
@@ -642,16 +585,6 @@ package object config {
   private[spark] val SHUFFLE_SERVICE_ENABLED =
     ConfigBuilder("spark.shuffle.service.enabled")
       .version("1.2.0")
-      .booleanConf
-      .createWithDefault(false)
-
-  private[spark] val SHUFFLE_SERVICE_FETCH_RDD_ENABLED =
-    ConfigBuilder(Constants.SHUFFLE_SERVICE_FETCH_RDD_ENABLED)
-      .doc("Whether to use the ExternalShuffleService for fetching disk persisted RDD blocks. " +
-        "In case of dynamic allocation if this feature is enabled executors having only disk " +
-        "persisted blocks are considered idle after " +
-        "'spark.dynamicAllocation.executorIdleTimeout' and will be released accordingly.")
-      .version("3.0.0")
       .booleanConf
       .createWithDefault(false)
 

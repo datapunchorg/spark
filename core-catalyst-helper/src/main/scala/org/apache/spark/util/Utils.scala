@@ -30,7 +30,6 @@ import java.util.{Locale, Random, UUID}
 
 import com.google.common.collect.Interners
 import org.apache.commons.lang3.SystemUtils
-import org.apache.hadoop.security.UserGroupInformation
 import org.apache.spark.SparkConf
 import org.apache.spark.internal.Logging
 import org.apache.spark.internal.config.Tests.IS_TESTING
@@ -391,7 +390,7 @@ private[spark] object Utils extends Logging {
    */
   def getCurrentUserName(): String = {
     Option(System.getenv("SPARK_USER"))
-      .getOrElse(UserGroupInformation.getCurrentUser().getShortUserName())
+      .getOrElse("UNKNOWN_USER")
   }
 
   /**

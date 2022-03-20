@@ -34,8 +34,7 @@ import org.apache.hadoop.fs.permission.FsPermission
 import org.codehaus.commons.compiler.CompileException
 import org.codehaus.janino.InternalCompilerException
 
-import org.apache.spark.{Partition, SparkArithmeticException, SparkArrayIndexOutOfBoundsException, SparkClassNotFoundException, SparkConcurrentModificationException, SparkDateTimeException, SparkException, SparkFileAlreadyExistsException, SparkFileNotFoundException, SparkIllegalArgumentException, SparkIllegalStateException, SparkIndexOutOfBoundsException, SparkNoSuchElementException, SparkNoSuchMethodException, SparkNumberFormatException, SparkRuntimeException, SparkSecurityException, SparkSQLException, SparkSQLFeatureNotSupportedException, SparkUnsupportedOperationException, SparkUpgradeException}
-import org.apache.spark.launcher.SparkLauncher
+import org.apache.spark.{Partition, SparkArithmeticException, SparkArrayIndexOutOfBoundsException, SparkClassNotFoundException, SparkConcurrentModificationException, SparkDateTimeException, SparkException, SparkFileNotFoundException, SparkIllegalArgumentException, SparkIllegalStateException, SparkIndexOutOfBoundsException, SparkNoSuchElementException, SparkNoSuchMethodException, SparkNumberFormatException, SparkRuntimeException, SparkSecurityException, SparkSQLException, SparkSQLFeatureNotSupportedException, SparkUnsupportedOperationException, SparkUpgradeException}
 import org.apache.spark.memory.SparkOutOfMemoryError
 import org.apache.spark.sql.catalyst.ScalaReflection.Schema
 import org.apache.spark.sql.catalyst.WalkedTypePath
@@ -1443,11 +1442,6 @@ object QueryExecutionErrors {
     new SparkException("LOCATION clause illegal for view partition")
   }
 
-  def renamePathAsExistsPathError(srcPath: Path, dstPath: Path): Throwable = {
-    new SparkFileAlreadyExistsException(errorClass = "FAILED_RENAME_PATH",
-      Array(srcPath.toString, dstPath.toString))
-  }
-
   def renameAsExistsPathError(dstPath: Path): Throwable = {
     new FileAlreadyExistsException(s"Failed to rename as $dstPath already exists")
   }
@@ -1743,14 +1737,6 @@ object QueryExecutionErrors {
       maxBroadcastTableBytes: Long, dataSize: Long): Throwable = {
     new SparkException("Cannot broadcast the table that is larger than" +
       s" ${maxBroadcastTableBytes >> 30}GB: ${dataSize >> 30} GB")
-  }
-
-  def notEnoughMemoryToBuildAndBroadcastTableError(oe: OutOfMemoryError): Throwable = {
-    new OutOfMemoryError("Not enough memory to build and broadcast the table to all " +
-      "worker nodes. As a workaround, you can either disable broadcast by setting " +
-      s"${SQLConf.AUTO_BROADCASTJOIN_THRESHOLD.key} to -1 or increase the spark " +
-      s"driver memory by setting ${SparkLauncher.DRIVER_MEMORY} to a higher value.")
-      .initCause(oe.getCause)
   }
 
   def executeCodePathUnsupportedError(execName: String): Throwable = {
