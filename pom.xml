@@ -87,10 +87,8 @@
     <module>common/network-shuffle</module>
     <module>common/unsafe</module>
     <module>common/tags</module>
-    <module>core</module>
     <module>core-catalyst-helper</module>
     <module>sql/catalyst</module>
-    <!--<module>sql/core</module>-->
     <!-- See additional modules enabled by profiles below -->
   </modules>
 
