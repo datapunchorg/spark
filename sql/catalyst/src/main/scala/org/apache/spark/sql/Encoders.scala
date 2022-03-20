@@ -25,7 +25,6 @@ import scala.reflect.runtime.universe.TypeTag
 import org.apache.spark.sql.catalyst.analysis.GetColumnByOrdinal
 import org.apache.spark.sql.catalyst.encoders.{encoderFor, ExpressionEncoder}
 import org.apache.spark.sql.catalyst.expressions.{BoundReference, Cast}
-import org.apache.spark.sql.catalyst.expressions.objects.{DecodeUsingSerializer, EncodeUsingSerializer}
 import org.apache.spark.sql.errors.QueryExecutionErrors
 import org.apache.spark.sql.types._
 
@@ -178,76 +177,11 @@ object Encoders {
    */
   def bean[T](beanClass: Class[T]): Encoder[T] = ExpressionEncoder.javaBean(beanClass)
 
-  /**
-   * (Scala-specific) Creates an encoder that serializes objects of type T using Kryo.
-   * This encoder maps T into a single byte array (binary) field.
-   *
-   * T must be publicly accessible.
-   *
-   * @since 1.6.0
-   */
-  def kryo[T: ClassTag]: Encoder[T] = genericSerializer(useKryo = true)
-
-  /**
-   * Creates an encoder that serializes objects of type T using Kryo.
-   * This encoder maps T into a single byte array (binary) field.
-   *
-   * T must be publicly accessible.
-   *
-   * @since 1.6.0
-   */
-  def kryo[T](clazz: Class[T]): Encoder[T] = kryo(ClassTag[T](clazz))
-
-  /**
-   * (Scala-specific) Creates an encoder that serializes objects of type T using generic Java
-   * serialization. This encoder maps T into a single byte array (binary) field.
-   *
-   * T must be publicly accessible.
-   *
-   * @note This is extremely inefficient and should only be used as the last resort.
-   *
-   * @since 1.6.0
-   */
-  def javaSerialization[T: ClassTag]: Encoder[T] = genericSerializer(useKryo = false)
-
-  /**
-   * Creates an encoder that serializes objects of type T using generic Java serialization.
-   * This encoder maps T into a single byte array (binary) field.
-   *
-   * T must be publicly accessible.
-   *
-   * @note This is extremely inefficient and should only be used as the last resort.
-   *
-   * @since 1.6.0
-   */
-  def javaSerialization[T](clazz: Class[T]): Encoder[T] = javaSerialization(ClassTag[T](clazz))
-
   /** Throws an exception if T is not a public class. */
   private def validatePublicClass[T: ClassTag](): Unit = {
     if (!Modifier.isPublic(classTag[T].runtimeClass.getModifiers)) {
       throw QueryExecutionErrors.notPublicClassError(classTag[T].runtimeClass.getName)
     }
-  }
-
-  /** A way to construct encoders using generic serializers. */
-  private def genericSerializer[T: ClassTag](useKryo: Boolean): Encoder[T] = {
-    if (classTag[T].runtimeClass.isPrimitive) {
-      throw QueryExecutionErrors.primitiveTypesNotSupportedError()
-    }
-
-    validatePublicClass[T]()
-
-    ExpressionEncoder[T](
-      objSerializer =
-        EncodeUsingSerializer(
-          BoundReference(0, ObjectType(classOf[AnyRef]), nullable = true), kryo = useKryo),
-      objDeserializer =
-        DecodeUsingSerializer[T](
-          Cast(GetColumnByOrdinal(0, BinaryType), BinaryType),
-          classTag[T],
-          kryo = useKryo),
-      clsTag = classTag[T]
-    )
   }
 
   /**

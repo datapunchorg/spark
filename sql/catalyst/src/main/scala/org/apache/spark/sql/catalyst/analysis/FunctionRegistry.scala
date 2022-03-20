@@ -701,7 +701,6 @@ object FunctionRegistry {
     expression[CurrentUser]("current_user"),
     expression[CallMethodViaReflection]("reflect"),
     expression[CallMethodViaReflection]("java_method", true),
-    expression[SparkVersion]("version"),
     expression[TypeOf]("typeof"),
 
     // grouping sets

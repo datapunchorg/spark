@@ -166,61 +166,6 @@ trait InvokeLike extends Expression with NonSQLExpression with ImplicitCastInput
 }
 
 /**
- * Common trait for [[DecodeUsingSerializer]] and [[EncodeUsingSerializer]]
- */
-trait SerializerSupport {
-  /**
-   * If true, Kryo serialization is used, otherwise the Java one is used
-   */
-  val kryo: Boolean
-
-  /**
-   * The serializer instance to be used for serialization/deserialization in interpreted execution
-   */
-  lazy val serializerInstance: SerializerInstance = SerializerSupport.newSerializer(kryo)
-
-  /**
-   * Adds a immutable state to the generated class containing a reference to the serializer.
-   * @return a string containing the name of the variable referencing the serializer
-   */
-  def addImmutableSerializerIfNeeded(ctx: CodegenContext): String = {
-    val (serializerInstance, serializerInstanceClass) = {
-      if (kryo) {
-        ("kryoSerializer",
-          classOf[KryoSerializerInstance].getName)
-      } else {
-        ("javaSerializer",
-          classOf[JavaSerializerInstance].getName)
-      }
-    }
-    val newSerializerMethod = s"${classOf[SerializerSupport].getName}$$.MODULE$$.newSerializer"
-    // Code to initialize the serializer
-    ctx.addImmutableStateIfNotExists(serializerInstanceClass, serializerInstance, v =>
-      s"""
-         |$v = ($serializerInstanceClass) $newSerializerMethod($kryo);
-       """.stripMargin)
-    serializerInstance
-  }
-}
-
-object SerializerSupport {
-  /**
-   * It creates a new `SerializerInstance` which is either a `KryoSerializerInstance` (is
-   * `useKryo` is set to `true`) or a `JavaSerializerInstance`.
-   */
-  def newSerializer(useKryo: Boolean): SerializerInstance = {
-    // try conf from env, otherwise create a new one
-    val conf = Option(SparkEnv.get).map(_.conf).getOrElse(new SparkConf)
-    val s = if (useKryo) {
-      new KryoSerializer(conf)
-    } else {
-      new JavaSerializer(conf)
-    }
-    s.newInstance()
-  }
-}
-
-/**
  * Invokes a static function, returning the result.  By default, any of the arguments being null
  * will result in returning null instead of calling the function.
  *
@@ -1611,73 +1556,6 @@ case class CreateExternalRow(children: Seq[Expression], schema: StructType)
 
   override protected def withNewChildrenInternal(
     newChildren: IndexedSeq[Expression]): CreateExternalRow = copy(children = newChildren)
-}
-
-/**
- * Serializes an input object using a generic serializer (Kryo or Java).
- *
- * @param kryo if true, use Kryo. Otherwise, use Java.
- */
-case class EncodeUsingSerializer(child: Expression, kryo: Boolean)
-  extends UnaryExpression with NonSQLExpression with SerializerSupport {
-
-  override def nullSafeEval(input: Any): Any = {
-    serializerInstance.serialize(input).array()
-  }
-
-  override protected def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
-    val serializer = addImmutableSerializerIfNeeded(ctx)
-    // Code to serialize.
-    val input = child.genCode(ctx)
-    val javaType = CodeGenerator.javaType(dataType)
-    val serialize = s"$serializer.serialize(${input.value}, null).array()"
-
-    val code = input.code + code"""
-      final $javaType ${ev.value} =
-        ${input.isNull} ? ${CodeGenerator.defaultValue(dataType)} : $serialize;
-     """
-    ev.copy(code = code, isNull = input.isNull)
-  }
-
-  override def dataType: DataType = BinaryType
-
-  override protected def withNewChildInternal(newChild: Expression): EncodeUsingSerializer =
-    copy(child = newChild)
-}
-
-/**
- * Serializes an input object using a generic serializer (Kryo or Java).  Note that the ClassTag
- * is not an implicit parameter because TreeNode cannot copy implicit parameters.
- *
- * @param kryo if true, use Kryo. Otherwise, use Java.
- */
-case class DecodeUsingSerializer[T](child: Expression, tag: ClassTag[T], kryo: Boolean)
-  extends UnaryExpression with NonSQLExpression with SerializerSupport {
-
-  override def nullSafeEval(input: Any): Any = {
-    val inputBytes = java.nio.ByteBuffer.wrap(input.asInstanceOf[Array[Byte]])
-    serializerInstance.deserialize(inputBytes)
-  }
-
-  override protected def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
-    val serializer = addImmutableSerializerIfNeeded(ctx)
-    // Code to deserialize.
-    val input = child.genCode(ctx)
-    val javaType = CodeGenerator.javaType(dataType)
-    val deserialize =
-      s"($javaType) $serializer.deserialize(java.nio.ByteBuffer.wrap(${input.value}), null)"
-
-    val code = input.code + code"""
-      final $javaType ${ev.value} =
-         ${input.isNull} ? ${CodeGenerator.defaultValue(dataType)} : $deserialize;
-     """
-    ev.copy(code = code, isNull = input.isNull)
-  }
-
-  override def dataType: DataType = ObjectType(tag.runtimeClass)
-
-  override protected def withNewChildInternal(newChild: Expression): DecodeUsingSerializer[T] =
-    copy(child = newChild)
 }
 
 /**
