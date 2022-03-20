@@ -26,7 +26,6 @@ import scala.reflect.runtime.universe.TypeTag
 import org.apache.logging.log4j.Level
 import org.scalatest.matchers.must.Matchers
 
-import org.apache.spark.api.python.PythonEvalType
 import org.apache.spark.sql.AnalysisException
 import org.apache.spark.sql.catalyst.{AliasIdentifier, TableIdentifier}
 import org.apache.spark.sql.catalyst.catalog.{InMemoryCatalog, SessionCatalog}
@@ -611,65 +610,6 @@ class AnalysisSuite extends AnalysisTest with Matchers {
       checkPartitioning(numPartitions = 10, exprs =
         SortOrder(Symbol("a").attr, Ascending), Symbol("b").attr)
     }
-  }
-
-  test("SPARK-24208: analysis fails on self-join with FlatMapGroupsInPandas") {
-    val pythonUdf = PythonUDF("pyUDF", null,
-      StructType(Seq(StructField("a", LongType))),
-      Seq.empty,
-      PythonEvalType.SQL_GROUPED_MAP_PANDAS_UDF,
-      true)
-    val output = pythonUdf.dataType.asInstanceOf[StructType].toAttributes
-    val project = Project(Seq(UnresolvedAttribute("a")), testRelation)
-    val flatMapGroupsInPandas = FlatMapGroupsInPandas(
-      Seq(UnresolvedAttribute("a")), pythonUdf, output, project)
-    val left = SubqueryAlias("temp0", flatMapGroupsInPandas)
-    val right = SubqueryAlias("temp1", flatMapGroupsInPandas)
-    val join = Join(left, right, Inner, None, JoinHint.NONE)
-    assertAnalysisSuccess(
-      Project(Seq(UnresolvedAttribute("temp0.a"), UnresolvedAttribute("temp1.a")), join))
-  }
-
-  test("SPARK-34319: analysis fails on self-join with FlatMapCoGroupsInPandas") {
-    val pythonUdf = PythonUDF("pyUDF", null,
-      StructType(Seq(StructField("a", LongType))),
-      Seq.empty,
-      PythonEvalType.SQL_COGROUPED_MAP_PANDAS_UDF,
-      true)
-    val output = pythonUdf.dataType.asInstanceOf[StructType].toAttributes
-    val project1 = Project(Seq(UnresolvedAttribute("a")), testRelation)
-    val project2 = Project(Seq(UnresolvedAttribute("a")), testRelation2)
-    val flatMapGroupsInPandas = FlatMapCoGroupsInPandas(
-      1,
-      1,
-      pythonUdf,
-      output,
-      project1,
-      project2)
-    val left = SubqueryAlias("temp0", flatMapGroupsInPandas)
-    val right = SubqueryAlias("temp1", flatMapGroupsInPandas)
-    val join = Join(left, right, Inner, None, JoinHint.NONE)
-    assertAnalysisSuccess(
-      Project(Seq(UnresolvedAttribute("temp0.a"), UnresolvedAttribute("temp1.a")), join))
-  }
-
-  test("SPARK-34319: analysis fails on self-join with MapInPandas") {
-    val pythonUdf = PythonUDF("pyUDF", null,
-      StructType(Seq(StructField("a", LongType))),
-      Seq.empty,
-      PythonEvalType.SQL_MAP_PANDAS_ITER_UDF,
-      true)
-    val output = pythonUdf.dataType.asInstanceOf[StructType].toAttributes
-    val project = Project(Seq(UnresolvedAttribute("a")), testRelation)
-    val mapInPandas = MapInPandas(
-      pythonUdf,
-      output,
-      project)
-    val left = SubqueryAlias("temp0", mapInPandas)
-    val right = SubqueryAlias("temp1", mapInPandas)
-    val join = Join(left, right, Inner, None, JoinHint.NONE)
-    assertAnalysisSuccess(
-      Project(Seq(UnresolvedAttribute("temp0.a"), UnresolvedAttribute("temp1.a")), join))
   }
 
   test("SPARK-34741: Avoid ambiguous reference in MergeIntoTable") {

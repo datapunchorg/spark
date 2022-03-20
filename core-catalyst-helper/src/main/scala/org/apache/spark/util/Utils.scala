@@ -23,6 +23,7 @@ import java.io._
 import java.math.{MathContext, RoundingMode}
 import java.net._
 import java.nio.ByteBuffer
+import java.nio.channels.{FileChannel, WritableByteChannel}
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.util.{Locale, Random, UUID}
@@ -780,6 +781,131 @@ private[spark] object Utils extends Logging {
           case _ => true
         }
       }
+    }
+  }
+
+
+  /**
+   * Copy all data from an InputStream to an OutputStream. NIO way of file stream to file stream
+   * copying is disabled by default unless explicitly set transferToEnabled as true,
+   * the parameter transferToEnabled should be configured by spark.file.transferTo = [true|false].
+   */
+  def copyStream(
+                  in: InputStream,
+                  out: OutputStream,
+                  closeStreams: Boolean = false,
+                  transferToEnabled: Boolean = false): Long = {
+    tryWithSafeFinally {
+      (in, out) match {
+        case (input: FileInputStream, output: FileOutputStream) if transferToEnabled =>
+          // When both streams are File stream, use transferTo to improve copy performance.
+          val inChannel = input.getChannel
+          val outChannel = output.getChannel
+          val size = inChannel.size()
+          copyFileStreamNIO(inChannel, outChannel, 0, size)
+          size
+        case (input, output) =>
+          var count = 0L
+          val buf = new Array[Byte](8192)
+          var n = 0
+          while (n != -1) {
+            n = input.read(buf)
+            if (n != -1) {
+              output.write(buf, 0, n)
+              count += n
+            }
+          }
+          count
+      }
+    } {
+      if (closeStreams) {
+        try {
+          in.close()
+        } finally {
+          out.close()
+        }
+      }
+    }
+  }
+
+  /**
+   * Copy the first `maxSize` bytes of data from the InputStream to an in-memory
+   * buffer, primarily to check for corruption.
+   *
+   * This returns a new InputStream which contains the same data as the original input stream.
+   * It may be entirely on in-memory buffer, or it may be a combination of in-memory data, and then
+   * continue to read from the original stream. The only real use of this is if the original input
+   * stream will potentially detect corruption while the data is being read (e.g. from compression).
+   * This allows for an eager check of corruption in the first maxSize bytes of data.
+   *
+   * @return An InputStream which includes all data from the original stream (combining buffered
+   *         data and remaining data in the original stream)
+   */
+  def copyStreamUpTo(in: InputStream, maxSize: Long): InputStream = {
+    var count = 0L
+    val out = new ChunkedByteBufferOutputStream(64 * 1024, ByteBuffer.allocate)
+    val fullyCopied = tryWithSafeFinally {
+      val bufSize = Math.min(8192L, maxSize)
+      val buf = new Array[Byte](bufSize.toInt)
+      var n = 0
+      while (n != -1 && count < maxSize) {
+        n = in.read(buf, 0, Math.min(maxSize - count, bufSize).toInt)
+        if (n != -1) {
+          out.write(buf, 0, n)
+          count += n
+        }
+      }
+      count < maxSize
+    } {
+      try {
+        if (count < maxSize) {
+          in.close()
+        }
+      } finally {
+        out.close()
+      }
+    }
+    if (fullyCopied) {
+      out.toChunkedByteBuffer.toInputStream(dispose = true)
+    } else {
+      new SequenceInputStream( out.toChunkedByteBuffer.toInputStream(dispose = true), in)
+    }
+  }
+
+  def copyFileStreamNIO(
+                         input: FileChannel,
+                         output: WritableByteChannel,
+                         startPosition: Long,
+                         bytesToCopy: Long): Unit = {
+    val outputInitialState = output match {
+      case outputFileChannel: FileChannel =>
+        Some((outputFileChannel.position(), outputFileChannel))
+      case _ => None
+    }
+    var count = 0L
+    // In case transferTo method transferred less data than we have required.
+    while (count < bytesToCopy) {
+      count += input.transferTo(count + startPosition, bytesToCopy - count, output)
+    }
+    assert(count == bytesToCopy,
+      s"request to copy $bytesToCopy bytes, but actually copied $count bytes.")
+
+    // Check the position after transferTo loop to see if it is in the right position and
+    // give user information if not.
+    // Position will not be increased to the expected length after calling transferTo in
+    // kernel version 2.6.32, this issue can be seen in
+    // https://bugs.openjdk.java.net/browse/JDK-7052359
+    // This will lead to stream corruption issue when using sort-based shuffle (SPARK-3948).
+    outputInitialState.foreach { case (initialPos, outputFileChannel) =>
+      val finalPos = outputFileChannel.position()
+      val expectedPos = initialPos + bytesToCopy
+      assert(finalPos == expectedPos,
+        s"""
+           |Current position $finalPos do not equal to expected position $expectedPos
+           |after transferTo, please check your kernel version to see if it is 2.6.32,
+           |this is a kernel bug which will lead to unexpected behavior when using transferTo.
+           |You can set spark.file.transferTo = false to disable this NIO feature.
+         """.stripMargin)
     }
   }
 }

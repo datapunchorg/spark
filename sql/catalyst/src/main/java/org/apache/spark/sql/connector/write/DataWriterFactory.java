@@ -19,7 +19,6 @@ package org.apache.spark.sql.connector.write;
 
 import java.io.Serializable;
 
-import org.apache.spark.TaskContext;
 import org.apache.spark.annotation.Evolving;
 import org.apache.spark.sql.catalyst.InternalRow;
 
@@ -50,7 +49,7 @@ public interface DataWriterFactory extends Serializable {
    *                    Usually Spark processes many RDD partitions at the same time,
    *                    implementations should use the partition id to distinguish writers for
    *                    different partitions.
-   * @param taskId The task id returned by {@link TaskContext#taskAttemptId()}. Spark may run
+   * @param taskId The task id. Spark may run
    *               multiple tasks for the same partition (due to speculation or task failures,
    *               for example).
    */

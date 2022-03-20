@@ -205,16 +205,6 @@ class ExpressionEncoderSuite extends CodegenInterpretedPlanTest with AnalysisTes
   encodeDecodeTest(
     UDTCaseClass(new java.net.URI("http://spark.apache.org/")), "udt with case class")
 
-  // Kryo encoders
-  encodeDecodeTest("hello", "kryo string")(encoderFor(Encoders.kryo[String]))
-  encodeDecodeTest(new KryoSerializable(15), "kryo object")(
-    encoderFor(Encoders.kryo[KryoSerializable]))
-
-  // Java encoders
-  encodeDecodeTest("hello", "java string")(encoderFor(Encoders.javaSerialization[String]))
-  encodeDecodeTest(new JavaSerializable(15), "java object")(
-    encoderFor(Encoders.javaSerialization[JavaSerializable]))
-
   // test product encoders
   private def productTest[T <: Product : ExpressionEncoder](
       input: T, useFallback: Boolean = false): Unit = {

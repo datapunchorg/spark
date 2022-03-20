@@ -39,18 +39,6 @@ class EncoderErrorMessageSuite extends SparkFunSuite {
   // Note: we also test error messages for encoders for private classes in JavaDatasetSuite.
   // That is done in Java because Scala cannot create truly private classes.
 
-  test("primitive types in encoders using Kryo serialization") {
-    intercept[UnsupportedOperationException] { Encoders.kryo[Int] }
-    intercept[UnsupportedOperationException] { Encoders.kryo[Long] }
-    intercept[UnsupportedOperationException] { Encoders.kryo[Char] }
-  }
-
-  test("primitive types in encoders using Java serialization") {
-    intercept[UnsupportedOperationException] { Encoders.javaSerialization[Int] }
-    intercept[UnsupportedOperationException] { Encoders.javaSerialization[Long] }
-    intercept[UnsupportedOperationException] { Encoders.javaSerialization[Char] }
-  }
-
   test("nice error message for missing encoder") {
     val errorMsg1 =
       intercept[UnsupportedOperationException](ExpressionEncoder[ComplexNonEncodable1]).getMessage
