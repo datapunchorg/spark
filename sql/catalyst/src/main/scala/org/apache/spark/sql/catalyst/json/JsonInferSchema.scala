@@ -17,15 +17,12 @@
 
 package org.apache.spark.sql.catalyst.json
 
-import java.io.CharConversionException
-import java.nio.charset.MalformedInputException
 import java.util.Comparator
 
 import scala.util.control.Exception.allCatch
 
 import com.fasterxml.jackson.core._
 
-import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.analysis.TypeCoercion
 import org.apache.spark.sql.catalyst.expressions.ExprUtils
 import org.apache.spark.sql.catalyst.json.JacksonUtils.nextUntil
@@ -34,7 +31,6 @@ import org.apache.spark.sql.catalyst.util.LegacyDateFormats.FAST_DATE_FORMAT
 import org.apache.spark.sql.errors.QueryExecutionErrors
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.types._
-import org.apache.spark.util.Utils
 
 private[sql] class JsonInferSchema(options: JSONOptions) extends Serializable {
 
@@ -63,62 +59,6 @@ private[sql] class JsonInferSchema(options: JSONOptions) extends Serializable {
       case FailFastMode =>
         throw QueryExecutionErrors.malformedRecordsDetectedInSchemaInferenceError(e)
     }
-  }
-
-  /**
-   * Infer the type of a collection of json records in three stages:
-   *   1. Infer the type of each record
-   *   2. Merge types by choosing the lowest type necessary to cover equal keys
-   *   3. Replace any remaining null fields with string, the top type
-   */
-  def infer[T](
-      json: RDD[T],
-      createParser: (JsonFactory, T) => JsonParser): StructType = {
-    val parseMode = options.parseMode
-    val columnNameOfCorruptRecord = options.columnNameOfCorruptRecord
-
-    // In each RDD partition, perform schema inference on each row and merge afterwards.
-    val typeMerger = JsonInferSchema.compatibleRootType(columnNameOfCorruptRecord, parseMode)
-    val mergedTypesFromPartitions = json.mapPartitions { iter =>
-      val factory = options.buildJsonFactory()
-      iter.flatMap { row =>
-        try {
-          Utils.tryWithResource(createParser(factory, row)) { parser =>
-            parser.nextToken()
-            Some(inferField(parser))
-          }
-        } catch {
-          case e @ (_: RuntimeException | _: JsonProcessingException |
-                    _: MalformedInputException) =>
-            handleJsonErrorsByParseMode(parseMode, columnNameOfCorruptRecord, e)
-          case e: CharConversionException if options.encoding.isEmpty =>
-            val msg =
-              """JSON parser cannot handle a character in its input.
-                |Specifying encoding as an input option explicitly might help to resolve the issue.
-                |""".stripMargin + e.getMessage
-            val wrappedCharException = new CharConversionException(msg)
-            wrappedCharException.initCause(e)
-            handleJsonErrorsByParseMode(parseMode, columnNameOfCorruptRecord, wrappedCharException)
-        }
-      }.reduceOption(typeMerger).iterator
-    }
-
-    // Here we manually submit a fold-like Spark job, so that we can set the SQLConf when running
-    // the fold functions in the scheduler event loop thread.
-    val existingConf = SQLConf.get
-    var rootType: DataType = StructType(Nil)
-    val foldPartition = (iter: Iterator[DataType]) => iter.fold(StructType(Nil))(typeMerger)
-    val mergeResult = (index: Int, taskResult: DataType) => {
-      rootType = SQLConf.withExistingConf(existingConf) {
-        typeMerger(rootType, taskResult)
-      }
-    }
-    json.sparkContext.runJob(mergedTypesFromPartitions, foldPartition, mergeResult)
-
-    canonicalizeType(rootType, options)
-      .find(_.isInstanceOf[StructType])
-      // canonicalizeType erases all empty structs, including the only one we want to keep
-      .getOrElse(StructType(Nil)).asInstanceOf[StructType]
   }
 
   /**

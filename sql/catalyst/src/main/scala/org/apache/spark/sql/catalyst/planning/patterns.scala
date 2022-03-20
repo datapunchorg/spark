@@ -294,10 +294,6 @@ object PhysicalAggregation {
             // so replace each aggregate expression by its corresponding attribute in the set:
             equivalentAggregateExpressions.getExprState(ae).map(_.expr)
               .getOrElse(ae).asInstanceOf[AggregateExpression].resultAttribute
-            // Similar to AggregateExpression
-          case ue: PythonUDF if PythonUDF.isGroupedAggPandasUDF(ue) =>
-            equivalentAggregateExpressions.getExprState(ue).map(_.expr)
-              .getOrElse(ue).asInstanceOf[PythonUDF].resultAttribute
           case expression if !expression.foldable =>
             // Since we're using `namedGroupingAttributes` to extract the grouping key
             // columns, we need to replace grouping key expressions with their corresponding

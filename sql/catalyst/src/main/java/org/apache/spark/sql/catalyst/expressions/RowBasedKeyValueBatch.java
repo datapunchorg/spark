@@ -19,9 +19,7 @@ package org.apache.spark.sql.catalyst.expressions;
 import java.io.Closeable;
 import java.io.IOException;
 
-import org.apache.spark.memory.MemoryConsumer;
 import org.apache.spark.memory.SparkOutOfMemoryError;
-import org.apache.spark.memory.TaskMemoryManager;
 import org.apache.spark.sql.types.*;
 import org.apache.spark.unsafe.memory.MemoryBlock;
 

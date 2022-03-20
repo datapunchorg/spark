@@ -25,7 +25,6 @@ import org.apache.spark.sql.catalyst.plans._
 import org.apache.spark.sql.catalyst.plans.logical._
 import org.apache.spark.sql.catalyst.rules._
 import org.apache.spark.sql.catalyst.trees.TreePattern._
-import org.apache.spark.sql.errors.QueryCompilationErrors
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.util.Utils
 
@@ -184,49 +183,6 @@ object EliminateOuterJoin extends Rule[LogicalPlan] with PredicateHelper {
     case a @ Aggregate(_, _, p @ Project(_, Join(_, right, RightOuter, _, _)))
         if a.groupOnly && p.references.subsetOf(right.outputSet) =>
       a.copy(child = p.copy(child = right))
-  }
-}
-
-/**
- * PythonUDF in join condition can't be evaluated if it refers to attributes from both join sides.
- * See `ExtractPythonUDFs` for details. This rule will detect un-evaluable PythonUDF and pull them
- * out from join condition.
- */
-object ExtractPythonUDFFromJoinCondition extends Rule[LogicalPlan] with PredicateHelper {
-
-  private def hasUnevaluablePythonUDF(expr: Expression, j: Join): Boolean = {
-    expr.exists { e =>
-      PythonUDF.isScalarPythonUDF(e) && !canEvaluate(e, j.left) && !canEvaluate(e, j.right)
-    }
-  }
-
-  override def apply(plan: LogicalPlan): LogicalPlan = plan.transformUpWithPruning(
-    _.containsAllPatterns(PYTHON_UDF, JOIN)) {
-    case j @ Join(_, _, joinType, Some(cond), _) if hasUnevaluablePythonUDF(cond, j) =>
-      if (!joinType.isInstanceOf[InnerLike]) {
-        // The current strategy supports only InnerLike join because for other types,
-        // it breaks SQL semantic if we run the join condition as a filter after join. If we pass
-        // the plan here, it'll still get a an invalid PythonUDF RuntimeException with message
-        // `requires attributes from more than one child`, we throw firstly here for better
-        // readable information.
-        throw QueryCompilationErrors.usePythonUDFInJoinConditionUnsupportedError(joinType)
-      }
-      // If condition expression contains python udf, it will be moved out from
-      // the new join conditions.
-      val (udf, rest) = splitConjunctivePredicates(cond).partition(hasUnevaluablePythonUDF(_, j))
-      val newCondition = if (rest.isEmpty) {
-        logWarning(s"The join condition:$cond of the join plan contains PythonUDF only," +
-          s" it will be moved out and the join plan will be turned to cross join.")
-        None
-      } else {
-        Some(rest.reduceLeft(And))
-      }
-      val newJoin = j.copy(condition = newCondition)
-      joinType match {
-        case _: InnerLike => Filter(udf.reduceLeft(And), newJoin)
-        case _ =>
-          throw QueryCompilationErrors.usePythonUDFInJoinConditionUnsupportedError(joinType)
-      }
   }
 }
 

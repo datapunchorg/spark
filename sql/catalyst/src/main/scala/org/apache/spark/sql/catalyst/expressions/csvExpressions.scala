@@ -19,10 +19,7 @@ package org.apache.spark.sql.catalyst.expressions
 
 import java.io.CharArrayWriter
 
-import com.univocity.parsers.csv.CsvParser
-
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.catalyst.analysis.TypeCheckResult
 import org.apache.spark.sql.catalyst.csv._
 import org.apache.spark.sql.catalyst.expressions.codegen.CodegenFallback
 import org.apache.spark.sql.catalyst.util._

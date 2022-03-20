@@ -22,11 +22,8 @@ import java.lang.reflect.Modifier
 import scala.reflect.{classTag, ClassTag}
 import scala.reflect.runtime.universe.TypeTag
 
-import org.apache.spark.sql.catalyst.analysis.GetColumnByOrdinal
 import org.apache.spark.sql.catalyst.encoders.{encoderFor, ExpressionEncoder}
-import org.apache.spark.sql.catalyst.expressions.{BoundReference, Cast}
 import org.apache.spark.sql.errors.QueryExecutionErrors
-import org.apache.spark.sql.types._
 
 /**
  * Methods for creating an [[Encoder]].

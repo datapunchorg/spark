@@ -20,10 +20,12 @@
 package org.apache.spark.util
 
 import java.io._
+import java.math.{MathContext, RoundingMode}
 import java.net._
 import java.nio.ByteBuffer
+import java.nio.charset.StandardCharsets
 import java.nio.file.Files
-import java.util.{Random, UUID}
+import java.util.{Locale, Random, UUID}
 
 import com.google.common.collect.Interners
 import org.apache.commons.lang3.SystemUtils
@@ -671,5 +673,144 @@ private[spark] object Utils extends Logging {
   def tryWithResource[R <: Closeable, T](createResource: => R)(f: R => T): T = {
     val resource = createResource
     try f.apply(resource) finally resource.close()
+  }
+
+
+  /**
+   * Convert a quantity in bytes to a human-readable string such as "4.0 MiB".
+   */
+  def bytesToString(size: Long): String = bytesToString(BigInt(size))
+
+  def bytesToString(size: BigInt): String = {
+    val EiB = 1L << 60
+    val PiB = 1L << 50
+    val TiB = 1L << 40
+    val GiB = 1L << 30
+    val MiB = 1L << 20
+    val KiB = 1L << 10
+
+    if (size >= BigInt(1L << 11) * EiB) {
+      // The number is too large, show it in scientific notation.
+      BigDecimal(size, new MathContext(3, RoundingMode.HALF_UP)).toString() + " B"
+    } else {
+      val (value, unit) = {
+        if (size >= 2 * EiB) {
+          (BigDecimal(size) / EiB, "EiB")
+        } else if (size >= 2 * PiB) {
+          (BigDecimal(size) / PiB, "PiB")
+        } else if (size >= 2 * TiB) {
+          (BigDecimal(size) / TiB, "TiB")
+        } else if (size >= 2 * GiB) {
+          (BigDecimal(size) / GiB, "GiB")
+        } else if (size >= 2 * MiB) {
+          (BigDecimal(size) / MiB, "MiB")
+        } else if (size >= 2 * KiB) {
+          (BigDecimal(size) / KiB, "KiB")
+        } else {
+          (BigDecimal(size), "B")
+        }
+      }
+      "%.1f %s".formatLocal(Locale.US, value, unit)
+    }
+  }
+
+
+
+  /**
+   * Return a well-formed URI for the file described by a user input string.
+   *
+   * If the supplied path does not contain a scheme, or is a relative path, it will be
+   * converted into an absolute path with a file:// scheme.
+   */
+  def resolveURI(path: String): URI = {
+    try {
+      val uri = new URI(path)
+      if (uri.getScheme() != null) {
+        return uri
+      }
+      // make sure to handle if the path has a fragment (applies to yarn
+      // distributed cache)
+      if (uri.getFragment() != null) {
+        val absoluteURI = new File(uri.getPath()).getAbsoluteFile().toURI()
+        return new URI(absoluteURI.getScheme(), absoluteURI.getHost(), absoluteURI.getPath(),
+          uri.getFragment())
+      }
+    } catch {
+      case e: URISyntaxException =>
+    }
+    new File(path).getCanonicalFile().toURI()
+  }
+
+  /** Resolve a comma-separated list of paths. */
+  def resolveURIs(paths: String): String = {
+    if (paths == null || paths.trim.isEmpty) {
+      ""
+    } else {
+      paths.split(",").filter(_.trim.nonEmpty).map { p => Utils.resolveURI(p) }.mkString(",")
+    }
+  }
+
+  /** Check whether a path is an absolute URI. */
+  def isAbsoluteURI(path: String): Boolean = {
+    try {
+      val uri = new URI(path: String)
+      uri.isAbsolute
+    } catch {
+      case _: URISyntaxException =>
+        false
+    }
+  }
+
+  /**
+   * Pattern for matching a Windows drive, which contains only a single alphabet character.
+   */
+  val windowsDrive = "([a-zA-Z])".r
+
+  /** Return all non-local paths from a comma-separated list of paths. */
+  def nonLocalPaths(paths: String, testWindows: Boolean = false): Array[String] = {
+    val windows = isWindows || testWindows
+    if (paths == null || paths.trim.isEmpty) {
+      Array.empty
+    } else {
+      paths.split(",").filter { p =>
+        val uri = resolveURI(p)
+        Option(uri.getScheme).getOrElse("file") match {
+          case windowsDrive(d) if windows => false
+          case "local" | "file" => false
+          case _ => true
+        }
+      }
+    }
+  }
+}
+
+
+
+
+/**
+ * An [[OutputStream]] that will store the last 10 kilobytes (by default) written to it
+ * in a circular buffer. The current contents of the buffer can be accessed using
+ * the toString method.
+ */
+class CircularBuffer(sizeInBytes: Int = 10240) extends java.io.OutputStream {
+  private var pos: Int = 0
+  private var isBufferFull = false
+  private val buffer = new Array[Byte](sizeInBytes)
+
+  def write(input: Int): Unit = {
+    buffer(pos) = input.toByte
+    pos = (pos + 1) % buffer.length
+    isBufferFull = isBufferFull || (pos == 0)
+  }
+
+  override def toString: String = {
+    if (!isBufferFull) {
+      return new String(buffer, 0, pos, StandardCharsets.UTF_8)
+    }
+
+    val nonCircularBuffer = new Array[Byte](sizeInBytes)
+    System.arraycopy(buffer, pos, nonCircularBuffer, 0, buffer.length - pos)
+    System.arraycopy(buffer, 0, nonCircularBuffer, buffer.length - pos, pos)
+    new String(nonCircularBuffer, StandardCharsets.UTF_8)
   }
 }

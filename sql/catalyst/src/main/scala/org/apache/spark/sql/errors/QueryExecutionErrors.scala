@@ -35,7 +35,6 @@ import org.codehaus.commons.compiler.CompileException
 import org.codehaus.janino.InternalCompilerException
 
 import org.apache.spark.{Partition, SparkArithmeticException, SparkArrayIndexOutOfBoundsException, SparkClassNotFoundException, SparkConcurrentModificationException, SparkDateTimeException, SparkException, SparkFileAlreadyExistsException, SparkFileNotFoundException, SparkIllegalArgumentException, SparkIllegalStateException, SparkIndexOutOfBoundsException, SparkNoSuchElementException, SparkNoSuchMethodException, SparkNumberFormatException, SparkRuntimeException, SparkSecurityException, SparkSQLException, SparkSQLFeatureNotSupportedException, SparkUnsupportedOperationException, SparkUpgradeException}
-import org.apache.spark.executor.CommitDeniedException
 import org.apache.spark.launcher.SparkLauncher
 import org.apache.spark.memory.SparkOutOfMemoryError
 import org.apache.spark.sql.catalyst.ScalaReflection.Schema
@@ -689,13 +688,6 @@ object QueryExecutionErrors {
       errorClass = "WRITING_JOB_ABORTED",
       messageParameters = Array.empty,
       cause = e)
-  }
-
-  def commitDeniedError(
-      partId: Int, taskId: Long, attemptId: Int, stageId: Int, stageAttempt: Int): Throwable = {
-    val message = s"Commit denied for partition $partId (task $taskId, attempt $attemptId, " +
-      s"stage $stageId.$stageAttempt)"
-    new CommitDeniedException(message, stageId, partId, attemptId)
   }
 
   def unsupportedTableWritesError(ident: Identifier): Throwable = {

@@ -23,7 +23,6 @@ import scala.collection.mutable
 
 import org.apache.spark.sql.catalyst.expressions.codegen.CodegenFallback
 import org.apache.spark.sql.catalyst.expressions.objects.LambdaVariable
-import org.apache.spark.util.Utils
 
 /**
  * This class is used to compute equality of (sub)expression trees. Expressions can be added

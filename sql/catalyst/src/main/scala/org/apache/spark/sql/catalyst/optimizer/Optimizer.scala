@@ -1020,8 +1020,6 @@ object CollapseProject extends Rule[LogicalPlan] with AliasHelper {
   private def shouldInline(e: Expression, extractOnlyConsumer: Boolean): Boolean = e match {
     case _: Attribute | _: OuterReference => true
     case _ if e.foldable => true
-    // PythonUDF is handled by the rule ExtractPythonUDFs
-    case _: PythonUDF => true
     // Alias and ExtractValue are very cheap.
     case _: Alias | _: ExtractValue => e.children.forall(shouldInline(_, extractOnlyConsumer))
     // These collection create functions are not cheap, but we have optimizer rules that can
@@ -1649,8 +1647,6 @@ object PushPredicateThroughNonJoin extends Rule[LogicalPlan] with PredicateHelpe
     case _: RebalancePartitions => true
     case _: ScriptTransformation => true
     case _: Sort => true
-    case _: BatchEvalPython => true
-    case _: ArrowEvalPython => true
     case _: Expand => true
     case _ => false
   }
