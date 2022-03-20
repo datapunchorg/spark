@@ -13,6 +13,8 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * This file is copied and modified from https://github.com/apache/spark/blob/master/core/src/main/scala/org/apache/spark/util/Utils.scala
  */
 
 package org.apache.spark.util
@@ -21,7 +23,7 @@ import java.io._
 import java.net._
 import java.nio.ByteBuffer
 import java.nio.file.Files
-import java.util.Random
+import java.util.{Random, UUID}
 
 import com.google.common.collect.Interners
 import org.apache.commons.lang3.SystemUtils
@@ -624,5 +626,50 @@ private[spark] object Utils extends Logging {
           }
       }
     }
+  }
+
+  /**
+   * Create a directory inside the given parent directory. The directory is guaranteed to be
+   * newly created, and is not marked for automatic deletion.
+   */
+  def createDirectory(root: String, namePrefix: String = "spark"): File = {
+    var attempts = 0
+    val maxAttempts = MAX_DIR_CREATION_ATTEMPTS
+    var dir: File = null
+    while (dir == null) {
+      attempts += 1
+      if (attempts > maxAttempts) {
+        throw new IOException("Failed to create a temp directory (under " + root + ") after " +
+          maxAttempts + " attempts!")
+      }
+      try {
+        dir = new File(root, namePrefix + "-" + UUID.randomUUID.toString)
+        // SPARK-35907:
+        // This could throw more meaningful exception information if directory creation failed.
+        Files.createDirectories(dir.toPath)
+      } catch {
+        case e @ (_ : IOException | _ : SecurityException) =>
+          logError(s"Failed to create directory $dir", e)
+          dir = null
+      }
+    }
+
+    dir.getCanonicalFile
+  }
+
+  /**
+   * Create a temporary directory inside the given parent directory. The directory will be
+   * automatically deleted when the VM shuts down.
+   */
+  def createTempDir(
+                     root: String = System.getProperty("java.io.tmpdir"),
+                     namePrefix: String = "spark"): File = {
+    val dir = createDirectory(root, namePrefix)
+    dir
+  }
+
+  def tryWithResource[R <: Closeable, T](createResource: => R)(f: R => T): T = {
+    val resource = createResource
+    try f.apply(resource) finally resource.close()
   }
 }

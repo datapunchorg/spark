@@ -146,66 +146,6 @@ case class CsvToStructs(
 }
 
 /**
- * A function infers schema of CSV string.
- */
-@ExpressionDescription(
-  usage = "_FUNC_(csv[, options]) - Returns schema in the DDL format of CSV string.",
-  examples = """
-    Examples:
-      > SELECT _FUNC_('1,abc');
-       STRUCT<_c0: INT, _c1: STRING>
-  """,
-  since = "3.0.0",
-  group = "csv_funcs")
-case class SchemaOfCsv(
-    child: Expression,
-    options: Map[String, String])
-  extends UnaryExpression with CodegenFallback {
-
-  def this(child: Expression) = this(child, Map.empty[String, String])
-
-  def this(child: Expression, options: Expression) = this(
-    child = child,
-    options = ExprUtils.convertToMapData(options))
-
-  override def dataType: DataType = StringType
-
-  override def nullable: Boolean = false
-
-  @transient
-  private lazy val csv = child.eval().asInstanceOf[UTF8String]
-
-  override def checkInputDataTypes(): TypeCheckResult = {
-    if (child.foldable && csv != null) {
-      super.checkInputDataTypes()
-    } else {
-      TypeCheckResult.TypeCheckFailure(
-        "The input csv should be a foldable string expression and not null; " +
-        s"however, got ${child.sql}.")
-    }
-  }
-
-  override def eval(v: InternalRow): Any = {
-    val parsedOptions = new CSVOptions(options, true, "UTC")
-    val parser = new CsvParser(parsedOptions.asParserSettings)
-    val row = parser.parseLine(csv.toString)
-    assert(row != null, "Parsed CSV record should not be null.")
-
-    val header = row.zipWithIndex.map { case (_, index) => s"_c$index" }
-    val startType: Array[DataType] = Array.fill[DataType](header.length)(NullType)
-    val inferSchema = new CSVInferSchema(parsedOptions)
-    val fieldTypes = inferSchema.inferRowType(startType, row)
-    val st = StructType(inferSchema.toStructFields(fieldTypes, header))
-    UTF8String.fromString(st.sql)
-  }
-
-  override def prettyName: String = "schema_of_csv"
-
-  override protected def withNewChildInternal(newChild: Expression): SchemaOfCsv =
-    copy(child = newChild)
-}
-
-/**
  * Converts a [[StructType]] to a CSV output string.
  */
 // scalastyle:off line.size.limit

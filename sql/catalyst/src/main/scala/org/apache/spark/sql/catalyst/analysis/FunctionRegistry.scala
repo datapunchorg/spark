@@ -695,9 +695,6 @@ object FunctionRegistry {
     expression[AesEncrypt]("aes_encrypt"),
     expression[AesDecrypt]("aes_decrypt"),
     expression[SparkPartitionID]("spark_partition_id"),
-    expression[InputFileName]("input_file_name"),
-    expression[InputFileBlockStart]("input_file_block_start"),
-    expression[InputFileBlockLength]("input_file_block_length"),
     expression[MonotonicallyIncreasingID]("monotonically_increasing_id"),
     expression[CurrentDatabase]("current_database"),
     expression[CurrentCatalog]("current_catalog"),
@@ -775,7 +772,6 @@ object FunctionRegistry {
 
     // csv
     expression[CsvToStructs]("from_csv"),
-    expression[SchemaOfCsv]("schema_of_csv"),
     expression[StructsToCsv]("to_csv")
   )
 
