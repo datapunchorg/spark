@@ -91,8 +91,6 @@ trait PlanTestBase extends PredicateHelper with SQLHelper with SQLConfHelper { s
         ae.copy(resultId = ExprId(0))
       case lv: NamedLambdaVariable =>
         lv.copy(exprId = ExprId(0), value = null)
-      case udf: PythonUDF =>
-        udf.copy(resultId = ExprId(0))
     }
   }
 

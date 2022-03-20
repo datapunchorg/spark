@@ -29,7 +29,7 @@ import org.apache.xbean.asm9.{ClassReader, ClassVisitor, Handle, MethodVisitor, 
 import org.apache.xbean.asm9.Opcodes._
 import org.apache.xbean.asm9.tree.{ClassNode, MethodNode}
 
-import org.apache.spark.{SparkEnv, SparkException}
+import org.apache.spark.SparkException
 import org.apache.spark.internal.Logging
 
 /**
@@ -411,10 +411,6 @@ private[spark] object ClosureCleaner extends Logging {
 
       logDebug(s" +++ indylambda closure ($implMethodName) is now cleaned +++")
     }
-
-    if (checkSerializable) {
-      ensureSerializable(func)
-    }
   }
 
   /**
@@ -433,16 +429,6 @@ private[spark] object ClosureCleaner extends Logging {
       modifiersFieldOption.foreach(_.setAccessible(true))
       modifiersFieldOption
     } else None
-  }
-
-  private def ensureSerializable(func: AnyRef): Unit = {
-    try {
-      if (SparkEnv.get != null) {
-        SparkEnv.get.closureSerializer.newInstance().serialize(func)
-      }
-    } catch {
-      case ex: Exception => throw new SparkException("Task not serializable", ex)
-    }
   }
 
   private def instantiateClass(

@@ -36,6 +36,7 @@ import org.apache.spark.internal.Logging
 import org.apache.spark.internal.config.Tests.IS_TESTING
 import org.apache.spark.internal.config._
 import org.apache.spark.network.util.JavaUtils
+import org.apache.spark.util.io.ChunkedByteBufferOutputStream
 
 import scala.collection.JavaConverters._
 import scala.collection.Map

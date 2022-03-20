@@ -21,8 +21,7 @@ import java.time.ZoneId
 
 import scala.reflect.runtime.universe.TypeTag
 
-import org.apache.spark.{SparkConf, SparkFunSuite}
-import org.apache.spark.serializer.{JavaSerializer, KryoSerializer}
+import org.apache.spark.SparkFunSuite
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.catalyst.encoders.{ExpressionEncoder, RowEncoder}
 import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData
@@ -194,19 +193,5 @@ class UnsafeArraySuite extends SparkFunSuite {
     assert(toUnsafeArray(intArray).toIntArray().sameElements(intArray))
 
     assert(toUnsafeArray(doubleArray).toDoubleArray().sameElements(doubleArray))
-  }
-
-  test("unsafe java serialization") {
-    val ser = new JavaSerializer(new SparkConf).newInstance()
-    val arrayDataSer = ser.deserialize[UnsafeArrayData](ser.serialize(serialArray))
-    assert(arrayDataSer.getLong(0) == 19285)
-    assert(arrayDataSer.getBaseObject.asInstanceOf[Array[Byte]].length == 1024)
-  }
-
-  test("unsafe Kryo serialization") {
-    val ser = new KryoSerializer(new SparkConf).newInstance()
-    val arrayDataSer = ser.deserialize[UnsafeArrayData](ser.serialize(serialArray))
-    assert(arrayDataSer.getLong(0) == 19285)
-    assert(arrayDataSer.getBaseObject.asInstanceOf[Array[Byte]].length == 1024)
   }
 }

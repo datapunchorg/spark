@@ -20,7 +20,6 @@ package org.apache.spark.sql.catalyst.encoders
 import scala.reflect.ClassTag
 
 import org.apache.spark.SparkFunSuite
-import org.apache.spark.sql.Encoders
 
 class NonEncodable(i: Int)
 
