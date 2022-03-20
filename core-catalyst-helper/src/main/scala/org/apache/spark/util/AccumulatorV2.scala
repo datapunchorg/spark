@@ -23,7 +23,7 @@ import java.util.ArrayList
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 
-import org.apache.spark.{InternalAccumulator, SparkContext, TaskContext}
+import org.apache.spark.{InternalAccumulator}
 import org.apache.spark.internal.Logging
 import org.apache.spark.scheduler.AccumulableInfo
 import org.apache.spark.util.AccumulatorContext.internOption
@@ -46,7 +46,6 @@ abstract class AccumulatorV2[IN, OUT] extends Serializable {
   private[this] var atDriverSide = true
 
   private[spark] def register(
-      sc: SparkContext,
       name: Option[String] = None,
       countFailedValues: Boolean = false): Unit = {
     if (this.metadata != null) {
@@ -54,7 +53,6 @@ abstract class AccumulatorV2[IN, OUT] extends Serializable {
     }
     this.metadata = AccumulatorMetadata(AccumulatorContext.newId(), name, countFailedValues)
     AccumulatorContext.register(this)
-    sc.cleaner.foreach(_.registerAccumulatorForCleanup(this))
   }
 
   /**
@@ -184,24 +182,6 @@ abstract class AccumulatorV2[IN, OUT] extends Serializable {
       copyAcc
     } else {
       withBufferSerialized()
-    }
-  }
-
-  // Called by Java when deserializing an object
-  private def readObject(in: ObjectInputStream): Unit = Utils.tryOrIOException {
-    in.defaultReadObject()
-    if (atDriverSide) {
-      atDriverSide = false
-
-      // Automatically register the accumulator when it is deserialized with the task closure.
-      // This is for external accumulators and internal ones that do not represent task level
-      // metrics, e.g. internal SQL metrics, which are per-operator.
-      val taskContext = TaskContext.get()
-      if (taskContext != null) {
-        taskContext.registerAccumulator(this)
-      }
-    } else {
-      atDriverSide = true
     }
   }
 
