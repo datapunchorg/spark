@@ -36,7 +36,6 @@ import org.apache.spark.sql.catalyst.util.ArrayData
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.{CalendarInterval, UTF8String}
-import org.apache.spark.util.ClosureCleaner
 
 case class RepeatedStruct(s: Seq[PrimitiveData])
 
@@ -618,9 +617,6 @@ class ExpressionEncoderSuite extends CodegenInterpretedPlanTest with AnalysisTes
       useFallback: Boolean = false): Unit = {
     testAndVerifyNotLeakingReflectionObjects(s"encode/decode for $testName: $input", useFallback) {
       val encoder = implicitly[ExpressionEncoder[T]]
-
-      // Make sure encoder is serializable.
-      ClosureCleaner.clean((s: String) => encoder.getClass.getName)
 
       val row = encoder.createSerializer().apply(input)
       val schema = encoder.schema.toAttributes
