@@ -2888,6 +2888,7 @@
             <failIfNoTests>false</failIfNoTests>
             <excludedGroups>${test.exclude.tags}</excludedGroups>
             <groups>${test.include.tags}</groups>
+            <trimStackTrace>false</trimStackTrace>
           </configuration>
           <executions>
             <execution>
@@ -3380,29 +3381,6 @@
     -->
 
     <profile>
-      <id>hadoop-2</id>
-      <properties>
-        <!-- make sure to update IsolatedClientLoader whenever this version is changed -->
-        <hadoop.version>2.7.4</hadoop.version>
-        <curator.version>2.7.1</curator.version>
-        <commons-io.version>2.4</commons-io.version>
-        <!--
-          the declaration site above of these variables explains why we need to re-assign them here
-        -->
-        <hadoop-client-api.artifact>hadoop-client</hadoop-client-api.artifact>
-        <hadoop-client-runtime.artifact>hadoop-yarn-api</hadoop-client-runtime.artifact>
-        <hadoop-client-minicluster.artifact>hadoop-client</hadoop-client-minicluster.artifact>
-        <!-- SPARK-36547: Please don't upgrade the version below, otherwise there will be an error on building Hadoop 2.7 package -->
-        <scala-maven-plugin.version>4.3.0</scala-maven-plugin.version>
-      </properties>
-    </profile>
-
-    <profile>
-      <id>hadoop-3</id>
-      <!-- Default hadoop profile. Uses global properties. -->
-    </profile>
-
-    <profile>
       <id>test-java-home</id>
       <activation>
         <property><name>env.JAVA_HOME</name></property>
@@ -3496,77 +3474,6 @@
 
     </profile>
 
-    <!--
-     This is a profile to enable the use of the ASF snapshot and staging repositories
-     during a build. It is useful when testing against nightly or RC releases of dependencies.
-     It MUST NOT be used when building copies of Spark to use in production of for distribution,
-     -->
-    <profile>
-      <id>snapshots-and-staging</id>
-      <properties>
-        <!-- override point for ASF staging/snapshot repos -->
-        <asf.staging>https://repository.apache.org/content/groups/staging/</asf.staging>
-        <asf.snapshots>https://repository.apache.org/content/repositories/snapshots/</asf.snapshots>
-      </properties>
-
-      <pluginRepositories>
-        <pluginRepository>
-          <id>ASF Staging</id>
-          <url>${asf.staging}</url>
-        </pluginRepository>
-        <pluginRepository>
-          <id>ASF Snapshots</id>
-          <url>${asf.snapshots}</url>
-          <snapshots>
-            <enabled>true</enabled>
-          </snapshots>
-          <releases>
-            <enabled>false</enabled>
-          </releases>
-        </pluginRepository>
-
-      </pluginRepositories>
-      <repositories>
-        <repository>
-          <id>ASF Staging</id>
-          <url>${asf.staging}</url>
-        </repository>
-        <repository>
-          <id>ASF Snapshots</id>
-          <url>${asf.snapshots}</url>
-          <snapshots>
-            <enabled>true</enabled>
-          </snapshots>
-          <releases>
-            <enabled>false</enabled>
-          </releases>
-        </repository>
-      </repositories>
-    </profile>
-
-    <!--
-      These empty profiles are available in some sub-modules. Declare them here so that
-      maven does not complain when they're provided on the command line for a sub-module
-      that does not have them.
-    -->
-    <profile>
-      <id>hadoop-provided</id>
-      <properties>
-        <spark.yarn.isHadoopProvided>true</spark.yarn.isHadoopProvided>
-      </properties>
-    </profile>
-    <profile>
-      <id>hive-provided</id>
-    </profile>
-    <profile>
-      <id>orc-provided</id>
-    </profile>
-    <profile>
-      <id>parquet-provided</id>
-    </profile>
-    <profile>
-      <id>sparkr</id>
-    </profile>
     <!-- use org.openlabtesting.leveldbjni on aarch64 platform -->
     <profile>
       <id>aarch64</id>
