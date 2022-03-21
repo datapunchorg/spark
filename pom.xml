@@ -83,9 +83,6 @@
 
   <modules>
     <module>common/sketch</module>
-    <module>common/network-common</module>
-    <module>common/network-shuffle</module>
-    <module>common/unsafe</module>
     <module>common/tags</module>
     <module>core-catalyst-helper</module>
     <module>sql/catalyst</module>
