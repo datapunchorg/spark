@@ -404,6 +404,53 @@ private[spark] object Utils extends Logging {
   }
 
   /**
+   * Lists files recursively.
+   */
+  def recursiveList(f: File): Array[File] = {
+    require(f.isDirectory)
+    val result = f.listFiles.toBuffer
+    val dirList = result.filter(_.isDirectory)
+    while (dirList.nonEmpty) {
+      val curDir = dirList.remove(0)
+      val files = curDir.listFiles()
+      result ++= files
+      dirList ++= files.filter(_.isDirectory)
+    }
+    result.toArray
+  }
+
+  /**
+   * Delete a file or directory and its contents recursively.
+   * Don't follow directories if they are symlinks.
+   * Throws an exception if deletion is unsuccessful.
+   */
+  def deleteRecursively(file: File): Unit = {
+    if (file != null) {
+      JavaUtils.deleteRecursively(file)
+    }
+  }
+
+  /**
+   * Determines if a directory contains any files newer than cutoff seconds.
+   *
+   * @param dir must be the path to a directory, or IllegalArgumentException is thrown
+   * @param cutoff measured in seconds. Returns true if there are any files or directories in the
+   *               given directory whose last modified time is later than this many seconds ago
+   */
+  def doesDirectoryContainAnyNewFiles(dir: File, cutoff: Long): Boolean = {
+    if (!dir.isDirectory) {
+      throw new IllegalArgumentException(s"$dir is not a directory!")
+    }
+    val filesAndDirs = dir.listFiles()
+    val cutoffTimeInMillis = System.currentTimeMillis - (cutoff * 1000)
+
+    filesAndDirs.exists(_.lastModified() > cutoffTimeInMillis) ||
+      filesAndDirs.filter(_.isDirectory).exists(
+        subdir => doesDirectoryContainAnyNewFiles(subdir, cutoff)
+      )
+  }
+
+  /**
    * Convert a time parameter such as (50s, 100ms, or 250us) to seconds for internal use. If
    * no suffix is provided, the passed number is assumed to be in seconds.
    */
