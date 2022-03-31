@@ -3583,5 +3583,17 @@
         </pluginManagement>
       </build>
     </profile>
+
+    <profile>
+      <id>sql-parser</id>
+      <dependencies>
+        <dependency>
+          <groupId>com.google.guava</groupId>
+          <artifactId>guava</artifactId>
+          <scope>compile</scope>
+        </dependency>
+      </dependencies>
+    </profile>
+
   </profiles>
 </project>
