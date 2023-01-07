@@ -51,6 +51,10 @@ COPY examples /opt/spark/examples
 COPY kubernetes/tests /opt/spark/tests
 COPY data /opt/spark/data
 
+RUN cd /opt/spark/jars && \
+    wget -nv https://storage.googleapis.com/hadoop-lib/gcs/gcs-connector-hadoop3-2.1.5.jar && \
+    chmod og+r /opt/spark/jars/gcs-connector-hadoop3-2.1.5.jar
+
 ENV SPARK_HOME /opt/spark
 
 WORKDIR /opt/spark/work-dir
